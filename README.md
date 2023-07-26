@@ -22,7 +22,7 @@ However, I think many respondents missed David's more salient points:
   3. you could follow along on paper for a few iterations, verifying that the dot on
      the screen was moving by the sheer power of mathematics, alone (how computers work)
 
-Some of these points have also been addressed by (Bret Victor)[http://worrydream.com/]
+Some of these points have also been addressed by [Bret Victor](http://worrydream.com/)
 who wrote a fantastic whitepaper about ["Learnable Programming"](http://worrydream.com/#!/LearnableProgramming)
 with these relevant points:
 
@@ -37,7 +37,7 @@ may actually be "make programming more learnable" (we're focusing on the wrong s
 It turns out I'm not yet clear on my own goal here:
 
   * learning "how computers work" (low level stuff,) vs
-  * learning to think about problems like a programmer (decomposition, abstracion)
+  * learning to think about problems like a programmer (decomposition, abstraction)
 
 This project begain with the first of these in mind. The old 80s BASICS were simple
 and close to the machine by necessity. This makes them good for learning about how
