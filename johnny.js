@@ -9,23 +9,32 @@ function kw(caps) { // "THEN" => U8[84,116, 72,104, 69,101, 78,110]
   return v;
 }
 
-var LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),NEXT=kw("NEXT");
+var REM=kw("REM"),LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),NEXT=kw("NEXT");
 var REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO");
 var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),READ=kw("READ"),RESTORE=kw("RESTORE"),SET=kw("SET");
 var PRINT=kw("PRINT"),PROC=kw("PROC"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
+var n_funs = [
+  'GET','INKEY','RND','TIME','DIM',
+  'FLOOR','CEIL','ABS','ATN','COS','EXP','INT','SGN','SIN','SQR','LOG','LN','TAN','PI',
+  'LEN','INSTR','ASC','VAL'
+];
+var s_funs = [ // fns ending with '$'
+  'GET','INKEY','LEFT','MID','RIGHT','STRING','CHR','STR','BIN','HEX','TAT','UC','LC'
+];
 
 function log(c,p,msg) {
   console.log(`${msg} ${subs(c,p-4,p+5)}\n${'^'.padStart(msg.length+6)}`);
 }
 
-function isAlpha(c) { return (c >= 65 && c <= 90) || (c >= 97 && c <= 122); }
+function isAlpha(c) { return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95 || c === 64; } // [A-Za-z_@]
 function rest(c,p) { return dec.decode(c.slice(p)); }
 function subs(c,s,e) { return dec.decode(c.slice(s,e)); }
 function skip_ws(c,p) { while (c[p] === 32) ++p; return p; }
 
 function m_error(c,p,msg) {
-  p = skip_ws(c,p);
-  return { $:'error', msg, col:p+1, text:rest(c,p), aft:c.length }
+  var at = skip_ws(c,p);
+  while (p<c.length && c[p]!==58) ++p; // up to ":"
+  return { $:'error', at, msg, text:subs(c,at,p), aft:p };
 }
 
 function m_stmts(c,p,req,stmts) {
@@ -45,9 +54,22 @@ function m_stmt(c,p,req) {
   p = skip_ws(c,p);
   var t, s, at=p;
   switch (c[p]) {
+    case 63: { // "?" shorthand PRINT.
+      return m_print(c,p,at);
+    }
     case 68: case 100: {  // "D"
       t = is_kw(c,p,DIM,3);
       if (t) return m_dim(c,t,at);
+      break;
+    }
+    case 70: case 102: { // "F"
+      break;
+    }
+    case 71: case 103: { // "G"
+      t = is_kw(c,p,GOTO,1);
+      if (t) return m_goto_line(c,t,"Expecting a line number after GOTO");
+      t = is_kw(c,p,GOSUB,3);
+      if (t) return m_goto_line(c,t,"Expecting a line number after GOTO");
       break;
     }
     case 73: case 105: { t = c[p+1]; // "I"
@@ -68,12 +90,11 @@ function m_stmt(c,p,req) {
       if (t) return m_fn_proc(c,t,at,'PROC');
       break;
     }
-    case 63: { // "?" shorthand for PRINT.
-      return m_print(c,p,at);
-    }
-    case 71: case 103: { // "G"
-      t = is_kw(c,p,GOTO,1);
-      if (t) return m_goto_line(c,t,"Expecting a line number after GOTO");
+    case 82: case 114: { // "R"
+      t = is_kw(c,p,REM,3);
+      if (t) return m_rem(c,t,at);
+      t = is_kw(c,p,RETURN,1);
+      if (t) return { $:'return', at, aft:t }
       break;
     }
   }
@@ -82,15 +103,21 @@ function m_stmt(c,p,req) {
   return m_error(c,at,'Unrecognised Statement after '+req+' (Statement expected)')
 }
 
+function m_rem(c,p,at) {
+  p = skip_ws(c,p);
+  return { $:'rem', at, text:subs(c,p,c.length), aft:c.length }
+}
+
 function m_let(c,p,at,opt) {
   var name, exp=null, err=null;
   p = skip_ws(c,p);
-  name = m_ident_i(c,p,0,1);
+  name = m_ident_i(c,p,1,1);
   if (name) {
     p = skip_ws(c,name.aft);
     if (c[p] === 61) { // "="
       exp = m_expr(c,p+1,0,0); p=exp.aft;
     } else {
+      if (opt) return null; // not a LET stmt!
       err = m_error(c,p,"Missing = in Let statement"); p=err.aft;
     }
   } else {
@@ -144,8 +171,8 @@ function m_print(c,p,at) {
     if (expr !== null) {
       vals.push(expr); p = expr.aft;
     } else {
-      vals.push(m_error(c,p,"Expecting an expression print in PRINT statement"));
-      return { $:'print', at, vals, aft:c.length }
+      // vals.push(m_error(c,p,"Expecting an expression in PRINT statement"));
+      return { $:'print', at, vals, aft:p }
     }
   }
 }
@@ -191,25 +218,48 @@ function m_goto_line(c,p,req) {
 }
 
 function m_ident_i(c,p,opt,suf) {
-  var at = p, t = c[p], typ = '';
-  while (isAlpha(t) || t === 95) t=c[++p];
-  if (p > at) {
+  var at=p, t=c[p], typ='', e;
+  while (isAlpha(t)) t=c[++p];
+  if (p > at) { e=p;
     if (suf) {
       if (t === 37) { ++p; typ='%' } // "%"
       else if (t === 36) { ++p; typ='$' } // "$"
     }
-    return { $:'name', at, name:subs(c,at,p), typ, aft:p }
+    return { $:'name', at, name:subs(c,at,e), typ, aft:p }
   }
   if (opt) return null; return m_error(c,p,"Name expected");
 }
 
 function m_number_i(c,p,req) {
-  var at = p, val = 0, t = c[p];
+  var at = p, val = 0, t=c[p];
   while (t >= 48 && t <= 57) { val=val*10+(t-48); t=c[++p]; }
   if (p > at) {
-    return { $:'num', at, val, aft:p }
+    return { $:'num', at, val, fmt:'', aft:p }
   }
   if (!req) return null; return m_error(c,p,req);
+}
+
+function m_hex(c,p) {
+  var at=p++, val=0, t; // ++ "&"
+  for (;;) { t=c[p];
+    if (t >= 48 && t <= 57) t-=48;
+    else if (t >= 65 && t <= 70) t-=55;
+    else if (t >= 97 && t <= 102) t-=87;
+    else break; val=val*16+t; ++p;
+  }
+  if (p-1 > at) {
+    return { $:'num', at, val, fmt:'&', aft:p }
+  }
+  return m_error(c,at,"Hex digits expected after &");
+}
+
+function m_bin(c,p) {
+  var at=p++, val=0, t=c[p]; // ++ "%"
+  while (t >= 48 && t <= 49) { val=val*2+(t-48); t=c[++p]; }
+  if (p-1 > 10) {
+    return { $:'num', at, val, fmt:'%', aft:p }
+  }
+  return m_error(c,at,"Binary digits expected after %");
 }
 
 function m_string_i(c,p,opt) {
@@ -217,19 +267,17 @@ function m_string_i(c,p,opt) {
   if (t !== 34) {
     if (opt) return null; return m_error(c,p,"String expected");
   }
-  t = c[++p]; at=p; // advance.
+  t = c[++p]; at=p; // skip "
   for (;;) {
-    while (t !== 34 && t > 13) t=c[++p];
-    if (p > at) s += subs(c,at,p); at=p; // append segment.
+    while (t >= 32 && t !== 34) t=c[++p]; // exit: t==34/EOL at p
+    if (p > at) s += subs(c,at,p); // append segment, excludes p.
     if (t === 34) {
       if (c[p+1] === 34) { // double-quote.
-        s += '"'; p += 2; t = c[p];
-        continue;
-      } else { // closing quote.
-        return { $:'str', at:org, str:s, aft:p+1 }
+        s += '"'; p+=2; t=c[p]; at=p; continue;
       }
+      return { $:'str', at:org, str:s, aft:p+1 }
     } else { // missing closing quote.
-      return m_error(c,p,"Missing \" before end of line");
+      return m_error(c,p,'Missing " before end of line (begins at '+org+')');
     }
   }
 }
@@ -299,6 +347,8 @@ function m_nud(c,p) {
   p = skip_ws(c,p);
   var at=p, t = c[p], right;
   switch (t) {
+    case 37: return m_bin(c,p); // "%"
+    case 38: return m_hex(c,p); // "&"
     case 40: { ++p; // "("
       right = m_expr(c,p,0,0);
       p = skip_ws(c,right.aft);
@@ -336,10 +386,47 @@ function m_nud(c,p) {
       break;
   }
   var name = m_ident_i(c,p,1,1);
-  if (name !== null) return name;
-  var num = m_number_i(c,p,"");
-  if (num !== null) return num;
+  if (name !== null) {
+    // detect built-ins.
+    // FIXME: use a switch-matcher like m_stmt.
+    var low = name.name.toUpperCase();
+    if (name.typ === '') {
+      for (var i=0;i<n_funs.length;i++) {
+        if (n_funs[i] === low) {
+          return m_op_fn(c,name.aft,at,low)
+        }
+      }
+    } else if (name.typ === '$') {
+      for (var i=0;i<s_funs.length;i++) {
+        if (s_funs[i] === low) {
+          return m_op_fn(c,name.aft,at,low+'$')
+        }
+      }
+    }
+    return name;
+  }
+  var num = m_number_i(c,p,'');
+  if (num !== null) { p=num.aft;
+    if (c[p] === 46) { // "."
+      var fr = m_number_i(c,p+1,''); // fraction part (move to m_number_i)
+      if (fr) {
+        num.i = num.val; num.dec = fr.val; // save parts
+        num.val += Math.pow(10,-(fr.aft-fr.at))*fr.val; num.aft=fr.aft;
+      }
+    }
+    return num;
+  }
   return null;
+}
+
+function m_op_fn(c,p,at,op) {
+  var s, args=[]; p = skip_ws(c,p);
+  if (c[p] === 40) { // "(" optional args.
+    s=p; p = m_args(c, p+1, args);
+    if (c[p] === 41) ++p; // ")"
+    else err = m_error(c,p,"Missing ) to end arguments (opened at "+s+")");
+  }
+  return { $:op, at, args, aft:p }
 }
 
 function m_args(c,p,args) {
@@ -375,37 +462,91 @@ function m_fn_proc(c,p,at,op) {
 
 function is_kw(c,p,kw,min) {
   while (c[p] === 32) ++p; // skip spaces
-  for (var t, dot=p+min, i=0; i<kw.length; i+=2) {
-    t = c[p];
-    if (t === kw[i] || t === kw[i+1]) {
-      p++; // character matches, advance past it.
-    } else if (t === 46 && p >= dot) {
-      return p+1; // dot shorthand.
-    } else {
-      return 0; // charcter mismatch.
-    }
+  for (var t, dot=p+min, i=0; i<kw.length; i+=2) { t = c[p];
+    if (t === kw[i] || t === kw[i+1]) p++; // character matches.
+    else if (t === 46 && p >= dot) return p+1; // dot shorthand.
+    else return 0; // no match.
   }
   return p; // after keyword.
 }
 
 function m_line(text) {
-  var c = enc.encode(text), stmts=[], err;
-  var p = m_stmts(c,0,'NL',stmts); p = skip_ws(c,p);
-  if (p < c.length) { err = m_error(c,p,"End of Line expected"); p=err.aft; }
-  return { $:'line', stmts, err }
+  var c = enc.encode(text), stmts=[], t, p, no=-1, err;
+  p = skip_ws(c,0);
+  t = m_number_i(c,p,0);
+  if (t) { no=t.val; p=t.aft; }
+  p = m_stmts(c,p,'',stmts); p = skip_ws(c,p);
+  if (p < c.length) {
+    if (stmts.length) err = m_error(c,p,"End of Line expected");
+    else err = m_error(c,p,"Unrecognised statement");
+    p=err.aft;
+  }
+  return { $:'line', no, stmts, err }
 }
 
-var lines = [
-  'IFA=1PRINT"Y"ELSE40',
-  'IF A=2+3*4 OR A=2^7+FN_x(2,b) THEN PRINT "Y" ELSE GOTO 40',
-  'DIMa$(6),bb(x+1),c%(3,2,1)',
-  'LETx%=2^7+1:y=5',
-  'IFA=1PRINT"Y":A=2ELSEA=5',
-  'PRINT"DO YOU WANT INSTRUCTIONS?";:G$=GET$:IFG$="Y"ORG$="y"PROCinstruct',
-];
+var basic = `
+10 REM TEMPERATURE CONVERSION (GOSUB VERSION)
+20 REM WITHOUT STRUCTURED BASIC
+30 REM THIS IS NOT THE WAY TO WRITE PROGRAMS!
+40 REM JOHN A COLL
+50 REM VERSION 1.0 /22 NOV 81
+60 MODE 7
+70 @%=&2020A
+80 PRINT "ENTER THE TEMPERATURE FOLLOWED BY"
+90 PRINT "THE FIRST LETTER OF THE TEMPERATURE"
+100 PRINT "SCALE. e.g. 100C or 72F or 320K"
+110 PRINT
+120 PRINT "Enter the temperature ";
+130 INPUT REPLY$
+140 TEMP=VAL(REPLY$)
+150 SCALE$=RIGHT$(REPLY$,1)
+160 GOODSCALE=FALSE
+170 IF SCALE$="C" THEN GOSUB 370
+180 IF SCALE$="F" THEN GOSUB 390
+190 IF SCALE$="K" THEN GOSUB 430
+200 IF NOT ( GOODSCALE AND TEMP>=-273.16) GOTO 260
+210 PRINT''
+220 PRINT TEMP; " Celsius"
+230 PRINT TEMP+273.16; " Kelvin"
+240 PRINT TENP*9/5 + 32; " Fahrenheit"
+250 PRINT
+260 IF GOODSCALE THEN 310
+270 CLS
+280 PRINT "You must follow the temperature with"
+290 PRINT "the letter ""C"", ""F"" or ""K"" "
+300 PRINT "and nothing else"
+310 IF TEMP>=-273.16 THEN 360
+320 CLS
+330 PRINT "The temperature you have given is"
+340 PRINT "too cold for this universe! Try again"
+350 PRINT
+360 GOTO 110
+370 GOODSCALE=TRUE
+380 GOTO 460
+390 REM CONVERT TO CELSIUS
+400 TEMP=(TEMP-32)*5/9
+410 GOODSCALE=TRUE
+420 GOTO460
+430 REM CONVERT TO CELSIUS
+440 TEMP=TEMP-273.16
+450 GOODSCALE=TRUE
+460 RETURN
+`;
 
+// var lines = [
+//   'IFA=1PRINT"Y"ELSE40',
+//   'IF A=2+3*4 OR A=2^7+FN_x(2,b) THEN PRINT "Y" ELSE GOTO 40',
+//   'DIMa$(6),bb(x+1),c%(3,2,1)',
+//   'LETx%=2^7+1:y=5',
+//   'IFA=1PRINT"Y":A=2ELSEA=5',
+//   'PRINT"DO YOU WANT INSTRUCTIONS?";:G$=GET$:IFG$="Y"ORG$="y"PROCinstruct',
+//   'LET TODAY=23', // starts with TO
+//   'LET PRINT=1234.56', // PRINT is a reserved word
+// ];
+
+var lines = basic.split('\n');
 for (var zz of lines) {
-  console.log(JSON.stringify(m_line(zz),null,2));
+  if (zz) console.log(JSON.stringify(m_line(zz),null,2));
 }
 
 })();
