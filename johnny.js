@@ -24,7 +24,7 @@ function skip_ws(c,p) { while (c[p] === 32) ++p; return p; }
 
 function m_error(c,p,msg) {
   p = skip_ws(c,p);
-  return { $:'error', msg, col:p+1, text:rest(c,p) }
+  return { $:'error', msg, col:p+1, text:rest(c,p), aft:c.length }
 }
 
 function m_stmt(c,p,opt) {
@@ -268,6 +268,11 @@ function m_nud(c,p) {
     case 34: { // '"'
       return m_string_i(c,p,0);
     }
+    case 70: case 102: t = c[p+1]; // "F"
+      if (t === 78 || t === 110) { // "N"
+        return m_fn_proc(c,p+2,at,'FN');
+      }
+      break;
     case 78: case 110: // "N"
       t = is_kw(c,p,NOT,2);
       if (t) {
@@ -281,6 +286,25 @@ function m_nud(c,p) {
   var num = m_number_i(c,p,"");
   if (num !== null) return num;
   return null;
+}
+
+function m_fn_proc(c,p,at,op) {
+  p = skip_ws(c,p);
+  var name = m_ident_i(c,p,0), args = [], err = null;
+  p = skip_ws(c,name.aft);
+  if (c[p] === 40) { // "(" optional args.
+    for (;;) {
+      p = skip_ws(c,p+1); // +1 for '(' or comma
+      if (c[p] === 41) { ++p; break; } // ")" non-std.
+      var arg = m_expr(c,p,0,0);
+      args.push(arg);
+      p = skip_ws(c,arg.aft);
+      if (c[p] === 44) continue; // ","
+      if (c[p] === 41) { ++p; break; } // ")"
+      err = m_error(c,p,`Expecting , or ) in ${op}`); p = err.aft; break;
+    }
+  }
+  return { $:op, at, name, args, err, aft:p }
 }
 
 function is_kw(c,p,kw,min) {
@@ -307,7 +331,7 @@ function m_line(text) {
 
 var lines = [
   'IFA=1PRINT"Y"ELSE40',
-  'IF A=2+3*4 OR A=2^7+1 THEN PRINT "Y" ELSE GOTO 40',
+  'IF A=2+3*4 OR A=2^7+FN_x(2,b) THEN PRINT "Y" ELSE GOTO 40',
 ];
 
 for (var zz of lines) {
