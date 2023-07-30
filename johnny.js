@@ -10,7 +10,7 @@ function kw(caps) { // "THEN" => U8[84,116, 72,104, 69,101, 78,110]
 }
 
 var REM=kw("REM"),LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),NEXT=kw("NEXT");
-var REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO");
+var REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO"),TAB=kw("TAB");
 var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),READ=kw("READ"),RESTORE=kw("RESTORE"),SET=kw("SET");
 var PRINT=kw("PRINT"),PROC=kw("PROC"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
 var n_funs = [
@@ -87,7 +87,7 @@ function m_stmt(c,p,req) {
       t = is_kw(c,p,PRINT,1);
       if (t) return m_print(c,t,at);
       t = is_kw(c,p,PROC,4);
-      if (t) return m_fn_proc(c,t,at,'PROC');
+      if (t) return m_fn_proc(c,t,at,'proc');
       break;
     }
     case 82: case 114: { // "R"
@@ -145,35 +145,48 @@ function m_dim(c,p,at) {
   return { $:'dim', at, dims, err, aft:p }
 }
 
+// input: prints a "?"
+
 function m_print(c,p,at) {
-  var t, vals=[]
+  var t, s, vals=[], sem, ts=0;
+  // prefix ";" prevents leading right-align for a number (comma for column)
+  // TAB(c) advance to column c, next line if necessary
   for (;;) {
-    p = skip_ws(c,p);
+    p = skip_ws(c,p); sem=0;
     switch (c[p]) {
-      case 10: case 13: // EOL
-      case 58: // ":"
-        return { $:'print', at, vals, aft:p } // End PRINT.
-      case 44: // ","
-      case 59: // ";"
-      case 39: // "'"
-        // Print separators - TODO
-        p++;
-        continue;
-      case 69: case 101: { // "E"
-        if (is_kw(c,p,ELSE,2)) {
-          // Must exit PRINT before ELSE,
-          // in case this statement is inside an IF-ELSE.
-          return { $:'print', at, vals, aft:p }
-        }
-      }
+      case 59: sem=1; ++p; break; // ";" semis join without gaps
+      case 44: sem=2; ++p; break; // "," commas create fields
+      case 39: sem=3; ++p; break; // "'" begin new line
     }
-    var expr = m_expr(c,p,1,0)
-    if (expr !== null) {
-      vals.push(expr); p = expr.aft;
+    // can be a TAB() clause.
+    if (sem) p = skip_ws(c,p) ;; t=c[p];
+    if (t === 84 || t === 116) { // "T"
+      s = m_tab(c,p,sem);
+      if (s) { vals.push(sem, exp); p=s.aft; continue; }
+    }
+    // expr or end of print.
+    var exp = m_expr(c,p,1,0)
+    if (exp !== null) {
+      vals.push(sem, exp); p = exp.aft;
     } else {
-      // vals.push(m_error(c,p,"Expecting an expression in PRINT statement"));
-      return { $:'print', at, vals, aft:p }
+      p = skip_ws(c,p);
+      if (c[p] === 59) { ts=1; ++p; } // trailing ";"
+      return { $:'print', at, vals, ts, aft:p }
     }
+  }
+}
+
+function m_tab(c,p,sem) {
+  var x, y, t = is_kw(c,p,TAB,3), err=null, at=p;
+  if (t && c[p+3] === 40) { // "TAB("
+    x = m_expr(c,p+4,0,0); p=skip_ws(c,x.aft);
+    if (c[p] === 44) { // ","
+      y = m_expr(c,p+1,0,0); p=skip_ws(c,y.aft);
+    }
+    if (c[p] !== 41) { // ")"
+      err = m_error(c,p,"Missing ) to end TAB()"); p=err.aft;
+    }
+    return { pm:'tab', at, sem, x, y, err, aft:p }
   }
 }
 
@@ -355,8 +368,7 @@ function m_nud(c,p) {
       if (c[p] != 41) { // ")"
         return m_error(c,p,"Missing ) before end of line (opened at "+(at+1)+")");
       }
-      right.aft = p+1;
-      return right;
+      return { $:'()', at, right, aft:p+1 };
     }
     case 45: { ++p; // "-"
       right = m_nud(c,p);
@@ -374,7 +386,7 @@ function m_nud(c,p) {
     }
     case 70: case 102: t = c[p+1]; // "F"
       if (t === 78 || t === 110) { // "N"
-        return m_fn_proc(c,p+2,at,'FN');
+        return m_fn_proc(c,p+2,at,'fn');
       }
       break;
     case 78: case 110: // "N"
@@ -481,7 +493,89 @@ function m_line(text) {
     else err = m_error(c,p,"Unrecognised statement");
     p=err.aft;
   }
-  return { $:'line', no, stmts, err }
+  return { no, stmts, err }
+}
+
+function fmt_code(code) {
+  var res=[];
+  for (var L of code) {
+    var s = fmt_stmts(L.stmts);
+    if (L.err) s = fmt_err(L.err, s);
+    s = L.no+' '+s;
+    res.push(s);
+    console.log(s);
+  }
+  return res;
+}
+function fmt_stmts(stmts) {
+  var s = '';
+  for (var S of stmts) {
+    if (s) s += ' : ';
+    s += fmt_stmt(S);
+    if (S.err) s = fmt_err(S.err, s);
+  }
+  return s;
+}
+function fmt_err(L,s) {
+  if (s) s += ' ';
+  return s+`[${L.msg} at ${L.at+1}]`
+}
+function fmt_stmt(L) {
+  switch (L.$) {
+    case 'rem': return `rem ${L.text}`;
+    case 'let': return `let ${L.name.name}${L.name.typ} = ${fmt_expr(L.exp)}`;
+    case 'dim': return `dim`;
+    case 'if': {
+      var s = 'if '+fmt_expr(L.cond)+' then '+fmt_stmts(L.then_s);
+      if (L.else_s.length) s += ' else '+fmt_stmts(L.else_s);
+      return s;
+    }
+    case 'proc': return 'proc '+L.name.name+fmt_args(L.args);
+    case 'goto': return `goto ${L.line}`;
+    case 'gosub': return `gosub ${L.line}`;
+    case 'return': return `return`;
+    case 'print': return fmt_print(L);
+    default: return 'UNKNOWN';
+  }
+}
+var sems = ['',';',', '," ' "]
+function fmt_print(L) {
+  var s='print ', v=L.vals, sem, exp;
+  for (var i=0; i<v.length; i+=2) {
+    sem = v[i]; exp = v[i+1];
+    s += sems[sem] + fmt_expr(exp);
+  }
+  if (L.ts) s += ';';
+  return s;
+}
+function fmt_expr(L) {
+  switch (L.$) {
+    case 'tab': { var s = 'TAB('+fmt_expr(L.x); if (L.y) s += ','+fmt_expr(L.y); return s+')'; }
+    case 'err': return `[${L.msg} at ${L.at+1}]`;
+    case '()': return '('+fmt_expr(L.right)+')';
+    case 'fn': return 'fn '+L.name.name+fmt_args(L.args);
+    case 'neg': return '- '+fmt_expr(L.right);
+    case 'not': return 'not '+fmt_expr(L.right);
+    case 'name': return L.name+L.typ;
+    case 'str': return '"'+L.str.replace(/"/g,'""')+'"';
+    case 'num':
+      if (L.fmt === '&') return '&'+L.val.toString(16);
+      if (L.fmt === '%') return '%'+L.val.toString(2);
+      return L.val.toString();
+    default:
+      if (L.args) return L.$+fmt_args(L.args); // built-ins.
+      return fmt_expr(L.left)+' '+L.$+' '+fmt_expr(L.right);
+    }
+}
+function fmt_args(args) {
+  var a, len=args.length, s='';
+  if (len > 0) { s += '(';
+    for (a=0;a<len;a++) {
+      if (s.length>1) s += ',';
+      s += fmt_expr(args[a]);
+    } s += ')';
+  }
+  return s;
 }
 
 var basic = `
@@ -491,7 +585,7 @@ var basic = `
 40 REM JOHN A COLL
 50 REM VERSION 1.0 /22 NOV 81
 60 MODE 7
-70 @%=&2020A
+70 @%=&2020A :REM 02 dec places 10 cols, default @%=10
 80 PRINT "ENTER THE TEMPERATURE FOLLOWED BY"
 90 PRINT "THE FIRST LETTER OF THE TEMPERATURE"
 100 PRINT "SCALE. e.g. 100C or 72F or 320K"
@@ -508,7 +602,7 @@ var basic = `
 210 PRINT''
 220 PRINT TEMP; " Celsius"
 230 PRINT TEMP+273.16; " Kelvin"
-240 PRINT TENP*9/5 + 32; " Fahrenheit"
+240 PRINT TEMP*9/5 + 32; " Fahrenheit"
 250 PRINT
 260 IF GOODSCALE THEN 310
 270 CLS
@@ -544,9 +638,11 @@ var basic = `
 //   'LET PRINT=1234.56', // PRINT is a reserved word
 // ];
 
-var lines = basic.split('\n');
+var lines = basic.split('\n'), code=[];
 for (var zz of lines) {
-  if (zz) console.log(JSON.stringify(m_line(zz),null,2));
+  if (zz) code.push(m_line(zz));
 }
+console.log(JSON.stringify(code,null,2));
+fmt_code(code);
 
 })();
