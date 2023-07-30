@@ -11,7 +11,7 @@ function kw(caps) { // "THEN" => U8[84,116, 72,104, 69,101, 78,110]
 var LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),NEXT=kw("NEXT");
 var REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO");
 var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),READ=kw("READ"),RESTORE=kw("RESTORE"),SET=kw("SET");
-var PRINT=kw("PRINT");
+var PRINT=kw("PRINT"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
 
 function log(msg,c,p) {
   console.log(`${msg} ${subs(c,p-4,p+5)}\n${'^'.padStart(msg.length+6)}`);
@@ -26,8 +26,6 @@ function m_error(c,p,msg) {
   p = skip_ws(c,p);
   return { $:'error', msg, col:p+1, text:rest(c,p) }
 }
-
-// A line is continuously invalid until we can recognise a statement.
 
 function m_stmt(c,p,opt) {
   // m_stmt: attempt to recognise a statement.
@@ -81,7 +79,7 @@ function m_print(c,p,at) {
         }
       }
     }
-    var expr = m_expr(c,p,1)
+    var expr = m_expr(c,p,1,0)
     if (expr !== null) {
       vals.push(expr); p = expr.aft;
     } else {
@@ -96,7 +94,7 @@ function m_if(c,p,at) {
   // IF•{expr}{stmt}ELSE{ln-stmt}
   // IF is AMBIGUOUS: it might be part of a var name.
   var cond, then_s, else_s, thn, els, valid = 1;
-  cond = m_expr(c,p,1);
+  cond = m_expr(c,p,1,0);
   if (cond === null) return m_error(c,p,"Incomplete IF statement (Condition expected)");
   thn = is_kw(c, cond.aft, THEN, 2);
   if (thn) {
@@ -185,21 +183,58 @@ function m_string_i(c,p,opt) {
   }
 }
 
-function m_expr(c,p,opt) {
-  var t, at, right, left = m_nud(c,p)
+function m_expr(c,p,opt,lbp) {
+  var t, at, op, rbp, right, left = m_nud(c,p)
   if (left !== null) {
     // infix operator loop.
     for (;;) {
-      p = left.aft; t = c[p];
+      p = left.aft; t = c[p]; op=''; rbp=3;
       while (t === 32) { t = c[++p]; }; at=p; // skip spaces
       switch (t) {
-        case 61: { ++p; // "="
-          right = m_expr(c,p,0)
-          left = { $:'eq', at, left, right, aft:right.aft }
+        case 42: ++p; op='*'; rbp=5; break;
+        case 43: ++p; op='+'; rbp=4; break;
+        case 45: ++p; op='-'; rbp=4; break;
+        case 46: ++p; op='.'; rbp=5; break; // matrix multiply
+        case 47: ++p; op='/'; rbp=5; break;
+        case 94: ++p; op='^'; rbp=6; break;
+        case 60: t = c[++p]; // "<"
+          if (t === 62) { ++p; op='<>'; break; }
+          else if (t === 61) { ++p; op='<='; break; }
+          else if (t === 60) { ++p; op='<<'; break; }
+          else { op='<'; }
           break;
-        }
-        default:
-          return left;
+        case 61: ++p; op='='; break; // "="
+        case 62: t = c[++p]; // ">"
+          if (t === 61) { ++p; op='>='; break; }
+          else if (t === 62) { ++p;
+            if (c[p] === 62) { op='>>>'; break; }
+            else { op='>>'; break; }
+          } else { op='>'; }
+          break;
+        case 65: case 97: // "A"
+          t = is_kw(c,p,AND,1); if (t) { p=t; op='AND'; rbp=2; }
+          break;
+        case 68: case 100: // "D"
+          t = is_kw(c,p,DIV,2); if (t) { p=t; op='DIV'; rbp=5; }
+          break;
+        case 69: case 101: // "E"
+          t = is_kw(c,p,EOR,3); if (t) { p=t; op='EOR'; rbp=1; }
+          break;
+        case 77: case 109: // "M"
+          t = is_kw(c,p,MOD,3); if (t) { p=t; op='MOD'; rbp=5; }
+          break;
+        case 79: case 111: // "O"
+          t = is_kw(c,p,OR,2); if (t) { p=t; op='OR'; rbp=1; }
+          break;
+      }
+      if (op) {
+        // exit this sub-expr if rbp < lbp.
+        if (rbp < lbp) return left;
+        // use 'op' to build an infix expression.
+        right = m_expr(c,p,0,rbp);
+        left = { $:op, at, left, right, aft:right.aft };
+      } else {
+        return left;
       }
     }
   }
@@ -208,10 +243,19 @@ function m_expr(c,p,opt) {
 
 function m_nud(c,p) {
   p = skip_ws(c,p);
-  var at=p, t = c[p];
+  var at=p, t = c[p], right;
   switch (t) {
+    case 40: { ++p; // "("
+      right = m_expr(c,p,0,0);
+      p = skip_ws(c,right.aft);
+      if (c[p] != 41) { // ")"
+        return m_error(c,p,"Missing ) before end of line (opened at "+(at+1)+")");
+      }
+      right.aft = p+1;
+      return right;
+    }
     case 45: { ++p; // "-"
-      var right = m_nud(c,p);
+      right = m_nud(c,p);
       if (right !== null) {
         if (right.$ === 'num') { // Negative Number Literal
           right.val = -right.val;
@@ -224,6 +268,13 @@ function m_nud(c,p) {
     case 34: { // '"'
       return m_string_i(c,p,0);
     }
+    case 78: case 110: // "N"
+      t = is_kw(c,p,NOT,2);
+      if (t) {
+        right = m_expr(c,t,0,0);
+        return { $:'not', at, right, aft:right.aft }
+      }
+      break;
   }
   var name = m_ident_i(c,p,1);
   if (name !== null) return name;
@@ -256,7 +307,7 @@ function m_line(text) {
 
 var lines = [
   'IFA=1PRINT"Y"ELSE40',
-  'IF A = 1 THEN PRINT "Y" ELSE GOTO 40',
+  'IF A=2+3*4 OR A=2^7+1 THEN PRINT "Y" ELSE GOTO 40',
 ];
 
 for (var zz of lines) {
