@@ -10,9 +10,10 @@ function kw(caps) { // "THEN" => U8[84,116, 72,104, 69,101, 78,110]
 }
 
 var REM=kw("REM"),LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),NEXT=kw("NEXT");
-var REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO"),TAB=kw("TAB");
-var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),READ=kw("READ"),RESTORE=kw("RESTORE"),SET=kw("SET");
+var INPUT=kw("INPUT"),REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO"),TAB=kw("TAB");
+var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),READ=kw("READ"),RESTORE=kw("RESTORE"),CLS=kw("CLS");
 var PRINT=kw("PRINT"),PROC=kw("PROC"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
+var MODE=kw("MODE");
 var n_funs = [
   'GET','INKEY','RND','TIME','DIM',
   'FLOOR','CEIL','ABS','ATN','COS','EXP','INT','SGN','SIN','SQR','LOG','LN','TAN','PI',
@@ -57,6 +58,11 @@ function m_stmt(c,p,req) {
     case 63: { // "?" shorthand PRINT.
       return m_print(c,p,at);
     }
+    case 67: case 99: { // "C"
+      t = is_kw(c,p,CLS,3);
+      if (t) return { $:'cls', at, aft:t }
+      break;
+    }
     case 68: case 100: {  // "D"
       t = is_kw(c,p,DIM,3);
       if (t) return m_dim(c,t,at);
@@ -76,11 +82,18 @@ function m_stmt(c,p,req) {
       if (t === 70 || t === 102) {   // "F"
         return m_if(c,p+2,at);
       }
+      t = is_kw(c,p,INPUT,1);
+      if (t) return m_input(c,t,at);
       break;
     }
     case 76: case 108: { // "L"
       t = is_kw(c,p,LET,3);
       if (t) return m_let(c,t,at,0);
+      break;
+    }
+    case 77: case 109: { // "M"
+      t = is_kw(c,p,MODE,4);
+      if (t) return m_mode(c,t,at);
       break;
     }
     case 80: case 112: { // "P"
@@ -106,6 +119,30 @@ function m_stmt(c,p,req) {
 function m_rem(c,p,at) {
   p = skip_ws(c,p);
   return { $:'rem', at, text:subs(c,p,c.length), aft:c.length }
+}
+
+function m_mode(c,p,at) {
+  p = skip_ws(c,p);
+  var mode = m_expr(c,p,0,0);
+  return { $:'mode', at, mode, aft:mode.aft };
+}
+
+function m_input(c,p,at) {
+  var s, com=0, vars=[], err=null;
+  p = skip_ws(c,p);
+  if (c[p] === 44) { com=1; p = skip_ws(c,p+1); } // ","
+  for (;;) {
+    s = m_ident_i(c,p,1,1);
+    if (!s) break;
+    vars.push(s);
+    p = skip_ws(c,s.aft);
+    if (c[p] === 44) { ++p; continue } // ","
+    else break;
+  }
+  if (vars.length < 1) {
+    err = m_error(c,p,"Missing variable name"); p=err.aft;
+  }
+  return { $:'input', at, com, vars, err, aft:p };
 }
 
 function m_let(c,p,at,opt) {
@@ -148,32 +185,36 @@ function m_dim(c,p,at) {
 // input: prints a "?"
 
 function m_print(c,p,at) {
-  var t, s, vals=[], sem, ts=0;
-  // prefix ";" prevents leading right-align for a number (comma for column)
-  // TAB(c) advance to column c, next line if necessary
-  for (;;) {
-    p = skip_ws(c,p); sem=0;
+  var s, vals=[], sem=0;
+  // prior separator is used when terms are juxtaposed!
+  // terms can be juxtaposed with or without spaces, until ':' EOL ELSE
+  // TAB(c) advances to column c, next line if necessary.
+  // numbers always pad to their 10-column width, unless after ;
+  pr:for (;;) {
+    p = skip_ws(c,p);
     switch (c[p]) {
-      case 59: sem=1; ++p; break; // ";" semis join without gaps
-      case 44: sem=2; ++p; break; // "," commas create fields
-      case 39: sem=3; ++p; break; // "'" begin new line
+      case 10: case 13: break pr; // eol end print
+      case 39: sem=2; ++p; continue; // "'" begin new line
+      case 44: sem=0; ++p; continue; // "," commas create fields
+      case 58: break pr; // ":" end print
+      case 59: sem=1; ++p; continue; // ";" semis join without gaps
+      case 84: case 116: { // "T"
+        s = m_tab(c,p,sem);
+        if (s) { vals.push(sem, exp); p=s.aft; continue; } // TAB()
+        break;
+      }
+      case 69: case 101: { // "E"
+        if (is_kw(c,p,ELSE,2)) break pr; // ELSE end print
+        break;
+      }
     }
-    // can be a TAB() clause.
-    if (sem) p = skip_ws(c,p) ;; t=c[p];
-    if (t === 84 || t === 116) { // "T"
-      s = m_tab(c,p,sem);
-      if (s) { vals.push(sem, exp); p=s.aft; continue; }
-    }
-    // expr or end of print.
-    var exp = m_expr(c,p,1,0)
-    if (exp !== null) {
-      vals.push(sem, exp); p = exp.aft;
-    } else {
-      p = skip_ws(c,p);
-      if (c[p] === 59) { ts=1; ++p; } // trailing ";"
-      return { $:'print', at, vals, ts, aft:p }
-    }
+    s = m_expr(c,p,1,0);
+    if (s === null) break; // end print
+    vals.push(sem, s); p = s.aft;
   }
+  p = skip_ws(c,p); sem=0;
+  if (c[p] === 59) { sem=1; ++p; } // trailing ";"
+  return { $:'print', at, vals, sem, aft:p }
 }
 
 function m_tab(c,p,sem) {
@@ -518,7 +559,7 @@ function fmt_stmts(stmts) {
 }
 function fmt_err(L,s) {
   if (s) s += ' ';
-  return s+`[${L.msg} at ${L.at+1}]`
+  return s+`[${L.msg} at ${L.at+1}: ${L.text}]`
 }
 function fmt_stmt(L) {
   switch (L.$) {
@@ -535,6 +576,9 @@ function fmt_stmt(L) {
     case 'gosub': return `gosub ${L.line}`;
     case 'return': return `return`;
     case 'print': return fmt_print(L);
+    case 'input': return fmt_input(L);
+    case 'cls': return 'cls';
+    case 'mode': return 'mode '+fmt_expr(L.mode);
     default: return 'UNKNOWN';
   }
 }
@@ -545,8 +589,17 @@ function fmt_print(L) {
     sem = v[i]; exp = v[i+1];
     s += sems[sem] + fmt_expr(exp);
   }
-  if (L.ts) s += ';';
+  if (L.sem) s += ';';
   return s;
+}
+function fmt_input(L) {
+  var s='', v=L.vars, it;
+  for (var i=0; i<v.length; i++) {
+    it = v[i]; if (s) s += ', ';
+    s += fmt_expr(it);
+  }
+  if (L.com) s = ','+s;
+  return 'input '+s;
 }
 function fmt_expr(L) {
   switch (L.$) {
@@ -636,6 +689,7 @@ var basic = `
 //   'PRINT"DO YOU WANT INSTRUCTIONS?";:G$=GET$:IFG$="Y"ORG$="y"PROCinstruct',
 //   'LET TODAY=23', // starts with TO
 //   'LET PRINT=1234.56', // PRINT is a reserved word
+//   'IFA=1PRINTTAB(4)A"HI"TAB(18)5ELSEPRINT"NO"',
 // ];
 
 var lines = basic.split('\n'), code=[];
