@@ -1,5 +1,6 @@
 # Johnny BASIC
-Johnny BASIC programming environment and tutorial.
+
+Johnny BASIC programming environment and programming guide.
 
 ## What's this about?
 

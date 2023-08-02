@@ -550,6 +550,8 @@ function m_line(text) {
   return { no, stmts, err }
 }
 
+// Regenerate code.
+
 function fmt_code(code) {
   var res=[];
   for (var L of code) {
@@ -644,31 +646,35 @@ function fmt_args(args) {
   return s;
 }
 
+// CodeGen.
+
 var opLet=1,opDim=2,opPrint=3,opIfN=4,opJmp=5,opGoToExp=6,opGoSubExp=7,opReturn=8,opInput=9,opCls=10;
 var opNeg=11,opNot=12,opVar=13,opNum=14,opStr=15,opFn=16,opTab=17,opTabXY=18;
-var opAdd=20,opSub=21,opMul=22,opDiv=23,opIDiv=24,opMod=25,opAnd=26,opOr=27,opEor=28;
+var opAdd=20,opSub=21,opMul=22,opDiv=23,opIDiv=24,opMod=25,opPow=26,opAnd=27,opOr=28,opEor=29;
 var opEq=30,opNe=31,opGt=32,opGe=33,opLt=34,opLe=35;
 var opCodes={
- '+':opAdd,'-':opSub,'*':opMul,'/':opDiv,'DIV':opIDiv,'MOD':opMod,'AND':opAnd,'OR':opOr,'EOR':opEor,
- '=':opEq,'<>':opNe,'<':opLt,'<=':opLe,'>':opGt,'>=':opGe
+ '+':opAdd,'-':opSub,'*':opMul,'/':opDiv,'DIV':opIDiv,'MOD':opMod,'^':opPow,
+ 'AND':opAnd,'OR':opOr,'EOR':opEor,'=':opEq,'<>':opNe,'<':opLt,'<=':opLe,'>':opGt,'>=':opGe
 };
-function gen_code(code) {
- var g={ops:[0],err:[],line:0,nvar:0,vars:new Map()}
+function new_gctx() {
+  return {ops:[],err:[],line:0,nvar:0,varmap:new Map(),vars:[],out:[]}
+}
+function gen_code(code, G) {
+ G.ops=[]; G.err=[]; // new outputs.
  for (var L of code) {
-  g.line = L.no;
-  gen_stmts(g,L.stmts);
-  if (L.err) gen_err(g,L.err);
+  G.line = L.no;
+  gen_stmts(G,L.stmts);
+  if (L.err) gen_err(G,L.err);
  }
- g.ops[0] = g.nvar; // number of vars used.
- return g;
 }
 function gen_err(g,err) {
  var s = err.msg;
  if (g.line>=0) g.err.push(s+' at line '+g.line); else g.err.push(s);
 }
-function gen_var(g,key) {
- var n,v=g.vars; if (v.has(key)) return v.get(key);
- n=g.nvar++; v.set(key,n); return n;
+function gen_var(g,name,typ) {
+ if (typ) name += typ;
+ var n,v=g.varmap; if (v.has(name)) return v.get(name);
+ n=g.nvar++; v.set(name,n); return n;
 }
 function gen_stmts(g,stmts) {
  for (var S of stmts) {
@@ -682,13 +688,13 @@ function gen_stmt(g,L) {
    case 'rem': return
    case 'let': {
     if (!(L.name && L.exp)) return; // has error.
-    var n = gen_var(g,L.name.name+L.name.type);
+    var n = gen_var(g,L.name.name,L.name.type);
     push_expr(g,L.exp); g.ops.push(opLet,n); return;
    }
    case 'dim': { var dims=L.dims,i,dim,n,args;
     for (i=0;i<dims;i++) { dim=dims[i];
      args=dim.args; for (j=0;j<args.length;j++) push_expr(g,args[j]);
-     n = gen_var(g,dim.name.name+dim.name.type);
+     n = gen_var(g,dim.name.name,dim.name.type);
      g.ops.push(opDim,n,args.length);
     }
     return;
@@ -726,7 +732,7 @@ function gen_stmt(g,L) {
 }
 function gen_print(g,L) {
  var i,vals=L.vals,sems=[];
- for (i=0;i<vals.length;i+=2) {
+ for (i=vals.length-2;i>=0;i-=2) { // reversed.
   sems.push(vals[i]);
   push_expr(g,vals[i+1]);
  }
@@ -735,7 +741,7 @@ function gen_print(g,L) {
 function gen_input(g,L) {
  var i,n,v,vars=L.vars,vns=[];
  for (i=0;i<vars.length;i++) { v=vars[i];
-  vns.push(gen_var(g,v.name+v.typ));
+  vns.push(gen_var(g,v.name,v.typ));
  }
  g.ops.push(opInput, L.com, vars.length, ...vns);
 }
@@ -751,13 +757,13 @@ function push_expr(g,L) {
   case '()': push_expr(L.right); return
   case 'fn': {
    for (var i=0;i<L.args;i++) push_expr(g,L.args[i]);
-   var n = gen_var(g, 'fn:'+L.name.name);
+   var n = gen_var(g,'fn:',L.name.name);
    g.ops.push(opFn,n); return
   }
   case 'neg': push_expr(L.right); g.ops.push(opNeg); return
   case 'not': push_expr(L.right); g.ops.push(opNot); return
   case 'name': {
-   var n = gen_var(g, L.name+L.typ);
+   var n = gen_var(g,L.name,L.typ);
    g.ops.push(opVar,n); return
   }
   case 'num': g.ops.push(opNum,L.val); return
@@ -775,36 +781,99 @@ function push_expr(g,L) {
  }
 }
 
-function compile_text(text) {
+// Evaluator.
+
+function eval_code(ops, G) {
+ var a=G.vars,i,n,stack=[],top=0,p=0; G.out=[]; // reset output.
+ for (i=a.length;i<G.nvar;i++) a.push(null); // alloc vars.
+ for (p=0;p<ops.length;) {
+  switch (ops[p++]) {
+  case opLet: G.vars[ops[p++]] = stack[--top]; break;
+  case opDim: {
+   n=ops[p++]; i=ops[p++];
+   G.vars[n]=[]; G.dims[n]=(a=[]);
+   while (i--) a.push(stack[--top]); // copy dims to G.dims[n]
+   break;
+  }
+  case opPrint: { // nsems, ...sems, last-sem
+   i=ops[p++]; a='';
+   while (i--) { n=ops[p++]; // 0=, 1=; 2='
+    if (a) a += ' '; a += stack[--top].toString();
+   }
+   n=ops[p++]; if (!n) a += "\n"; // last-sem.
+   G.out.push(a); break;
+  }
+  case opIfN: {
+   i=ops[p++]; n=stack[--top]; if (!n) p=i; break; // jump.
+  }
+  case opJmp: p=ops[p++]; break;
+  case opGoToExp: break;
+  case opGoSubExp: break;
+  case opReturn: break;
+  case opInput: break;
+  case opCls: break;
+  case opNeg: stack[top] = - stack[top]; break;
+  case opNot: stack[top] = ~ stack[top]; break;
+  case opVar: n=G.vars[ops[p++]]; stack[top++]=n; break;
+  case opNum: stack[top++] = ops[p++]; break;
+  case opStr: stack[top++] = ops[p++]; break;
+  case opFn: break;
+  case opTab: break;
+  case opTabXY: break;
+  case opAdd: --top; stack[top-1] += stack[top]; break;
+  case opSub: --top; stack[top-1] -= stack[top]; break;
+  case opMul: --top; stack[top-1] *= stack[top]; break;
+  case opDiv: --top; stack[top-1] /= stack[top]; break;
+  case opIDiv: --top; stack[top-1] = Math.floor(stack[top-1] / stack[top]); break;
+  case opMod: --top; stack[top-1] %= stack[top]; n % i; break;
+  case opPow: --top; stack[top-1] = Math.pow(stack[top-1], stack[top]); break;
+  case opAnd: --top; stack[top-1] = stack[top-1] & stack[top]; break;
+  case opOr: --top; stack[top-1] = stack[top-1] | stack[top]; break;
+  case opEor: --top; stack[top-1] = stack[top-1] ^ stack[top]; break;
+  case opEq: --top; stack[top-1] = stack[top-1] == stack[top] ? -1 : 0; break;
+  case opNe: --top; stack[top-1] = stack[top-1] != stack[top] ? -1 : 0; break;
+  case opGt: --top; stack[top-1] = stack[top-1] > stack[top] ? -1 : 0; break;
+  case opGe: --top; stack[top-1] = stack[top-1] >= stack[top] ? -1 : 0; break;
+  case opLt: --top; stack[top-1] = stack[top-1] < stack[top] ? -1 : 0; break;
+  case opLe: --top; stack[top-1] = stack[top-1] <= stack[top] ? -1 : 0; break;
+  default: throw new Error('bad op '+ops[--p]);
+  }
+ }
+}
+
+// Misc stuff.
+
+function compile_text(text, G) {
  var i,ln,lines = text.split('\n'), code=[];
  for (i=0;i<lines.length;i++) {
    ln=lines[i]; if (ln) code.push(m_line(ln));
  }
- var gen = gen_code(code);
- console.log(JSON.stringify(gen,null,2));
+ gen_code(code, G);
+ console.log(JSON.stringify(G,null,2));
  //fmt_code(code);
- return gen;
+ return G;
 }
 
-function exec_line(line) {
+function exec_line(line, G) {
  var code = [m_line(line)];
- var gen = gen_code(code);
- console.log(JSON.stringify(gen,null,2));
- //fmt_code(code);
- if (gen.err.length) return gen.err.join('\n');
- return JSON.stringify(gen.ops);
+ gen_code(code, G); // -> ops,err.
+ console.log(JSON.stringify(G,null,2));
+ if (G.err.length) return G.err.join('\n');
+ eval_code(G.ops, G); // -> out.
+ return G.out.join('');
 }
 
 // SBOX
 
-var css = ".hjs{display:none}#inp{display:none;position:absolute;z-index:0;border:0;padding:0;margin:0;outline:0;font:18px monospace;font-weight:600;line-height:24px;width:100%;background:#f2f2f2;color:#303335}.sbox{margin-top:2em;border:1px solid #727272;padding:1px 4px 1px 26px;font:18px monospace;line-height:24px;white-space:nowrap;position:relative;height:98px;overflow-y:scroll;background:#fdfaf9;color:#303335}.sbcr{position:absolute;left:1px;top:1px;width:12px;padding:1px 4px;color:#877c7c;background:#ccc;min-height:96px;}.scode{position:absolute;left:27px;top:1px;bottom:1px;right:3px}.C{font-weight:600;}.CC{font-weight:600;}.R{position:relative;top:1px;}@media(prefers-color-scheme:dark){.sbox{background:#383e41;color:#fff}#inp{background:#414a4e;color:#fff}}";
+var css = ".hjs{display:none}#inp{display:none;position:absolute;z-index:0;border:0;padding:0;margin:0;outline:0;font:18px monospace;font-weight:600;line-height:24px;width:100%;background:#f2f2f2;color:#303335}.sbox{margin-top:2em;border:1px solid #727272;padding:1px 4px 1px 26px;font:18px monospace;line-height:24px;white-space:nowrap;position:relative;height:98px;overflow-y:scroll;background:#fdfaf9;color:#303335}.sbcr{position:absolute;left:1px;top:1px;width:12px;padding:1px 4px;color:#877c7c;background:#ccc;min-height:96px;}.scode{position:absolute;left:27px;top:1px;bottom:1px;right:3px}.C{font-weight:600;height:24px}.RR{height:24px}.CC{font-weight:600;height:24px}.R{height:24px}@media(prefers-color-scheme:dark){.sbox{background:#383e41;color:#fff}#inp{background:#414a4e;color:#fff}}";
 var h=ElT('head'),s=Tag('style');s.styleSheet?s.styleSheet.cssText=css:s.textContent=css;h.appendChild(s);
 var inp=Tag('input');inp.type="text";inp.id='inp';inp.style.display='none';ElT('body').appendChild(inp);
+var focus_sb=null;
 
 function Stop(e){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();e.cancelBubble=true;return false}
 function ctext(txt,cls){ var n = D.createElement('div'); n.className=cls; n.appendChild(D.createTextNode(txt)); return n; }
 
-function navTo(e){var u,b;
+function navTo(e){
  setTimeout(function(){
   var n=+window.location.hash.substring(2);
   console.log("HASH: "+n);
@@ -814,59 +883,58 @@ function navTo(e){var u,b;
 }
 window.addEventListener("hashchange",navTo);navTo();
 
-function init_sbox(el,edn) {
- var cr = Tag('div','sbcr'), co = Tag('div','scode'); cr.id='cr'+edn; co.id='co'+edn;
+function new_sbox(sb) {
+ var cr = Tag('div','sbcr'), co = Tag('div','scode');
  co.role='log'; co.ariaLive='assertive'; co.ariaLabel='Scratch pad';
- cr.appendChild(ctext('⇨','CC')); setLC(co,0); co.tabIndex = -1;
- el.appendChild(cr); el.appendChild(co); el.setAttribute('x-ed',edn);
+ cr.appendChild(ctext('⇨','CC')); co.tabIndex = -1;
+ sb.appendChild(cr); sb.appendChild(co);
+ var sbox = { sb, cr, co, lines:0, G:new_gctx() }
+ sb.johnnySBox = sbox;
+ return sbox;
 }
 
 function keydown(e) {
- if (e.which === 13 && co) {
-  var txt = inp.value;
-  co.appendChild(ctext(txt,'C')); // line of input.
-  var i,out = exec_line(txt).split('\n');
-  for (i=0;i<out.length;i++) {
-   co.appendChild(ctext(out[i],'R')); cr.appendChild(ctext("•",'RR')); // line of output.
+ var sbox = focus_sb
+ if (e.which === 13 && sbox) {
+  var txt = inp.value, sb = sbox.sb, co = sbox.co, cr = sbox.cr;
+  co.appendChild(ctext(txt,'C')); sbox.lines++; // line of input.
+  var n,i,o,s=exec_line(txt, sbox.G);
+  if (s) { // any output?
+   for (i=0,o=s.replace(/\n$/,'').split('\n');i<o.length;i++) {
+    co.appendChild(ctext(o[i],'R')); sbox.lines++; // line of output.
+    cr.appendChild(ctext("•",'RR'));
+   }
   }
   cr.appendChild(ctext("⇨",'CC')); // next prompt.
-  var n = getLC(co)+2; setLC(co, n);
-  n = Math.max(Math.min(n+1,8),4); sb.style.height=(2+n*24)+'px'; // grow to 8 lines.
-  focusEd(sb,edn);
+  n = sbox.lines; n = Math.max(Math.min(n+1,8),4); sb.style.height=(2+n*24)+'px'; // grow to 8 lines.
+  focusEd(sbox);
   return Stop(e);
  }
 }
 
 function click(e) {
- var el = e.target, edn, n;
- edn = el.getAttribute('href');
- if (edn){ n=+edn.substring(2); if(n){ Hide('S'+(n-1));Hide('S'+(n+1));Show('S'+n); return }}
+ var el = e.target, s, n;
+ s = el.getAttribute('href');
+ if (s){ n=+s.substring(2); if(n){ Hide('S'+(n-1));Hide('S'+(n+1));Show('S'+n); return }}
  while (el) {
-  edn = el.getAttribute('x-ed');
-  if (edn) { focusEd(el,edn); return Stop(e); }
+  if (el.johnnySBox) { focusEd(el.johnnySBox); return Stop(e); }
   el = el.parentElement;
  }
- inp.style.display='none'; sb=null; cr=null; co=null; // clear input focus.
+ inp.style.display='none'; focus_sb=null; // clear input focus.
 }
 
-function focusEd(el,ed) {
- sb = el; edn = ed;
- cr = D.getElementById('cr'+ed);
- co = D.getElementById('co'+ed);
- co.appendChild(inp);
- var lc = getLC(co);
+function focusEd(sbox) {
+ focus_sb = sbox;
+ sbox.co.appendChild(inp);
  inp.style.left='0px';
- inp.style.top=(lc*24)+'px';
+ inp.style.top=(sbox.lines*24)+'px';
  inp.style.display='block';
  inp.value='';
  inp.focus();
 }
 
 var sboxes = D.querySelectorAll('div.sbox');
-for (var i=0;i<sboxes.length;i++) init_sbox(sboxes[i], i);
-var edn=0, sb=null, cr=null, co=null;
-function getLC(co){ return co ? +(co.getAttribute('x-lc')||'0') : 0; }
-function setLC(co,n){ if (co) co.setAttribute('x-lc',n); }
+for (var i=0;i<sboxes.length;i++) new_sbox(sboxes[i]);
 D.addEventListener('click', click, false);
 inp.addEventListener('keydown', keydown, false);
 
