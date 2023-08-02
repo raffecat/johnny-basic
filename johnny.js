@@ -269,12 +269,17 @@ function m_stmts_goto(c,p,req,stmts) {
   return m_stmts(c,p,req,stmts);
 }
 
-function m_goto_line(c,p,req) {
+function m_goto_line(c,p,stmt) {
   p = skip_ws(c,p);
-  var num = m_number_i(c,p,req);
+  var num = m_number_i(c,p,0);
   if (num) {
     // Implicit GoTo (a line number)
-    return { $:'goto', at:num.at, line:num.val, aft:num.aft }
+    return { $:'goto', at:num.at, line:num.val, exp:null, aft:num.aft }
+  }
+  if (stmt) { // "goto" stmt:
+   var to = m_expr(c,p,1,0); // BBC basic allows "goto <var>"!
+   if (to) return { $:'goto', at:num.at, line:0, exp:to, aft:to.aft }
+   return m_error(c,p,stmt);
   }
   return null;
 }
@@ -610,23 +615,23 @@ function fmt_input(L) {
   return 'input '+s;
 }
 function fmt_expr(L) {
-  switch (L.$) {
-    case 'tab': { var s = 'TAB('+fmt_expr(L.x); if (L.y) s += ','+fmt_expr(L.y); return s+')'; }
-    case 'err': return `[${L.msg} at ${L.at+1}]`;
-    case '()': return '('+fmt_expr(L.right)+')';
-    case 'fn': return 'fn '+L.name.name+fmt_args(L.args);
-    case 'neg': return '- '+fmt_expr(L.right);
-    case 'not': return 'not '+fmt_expr(L.right);
-    case 'name': return L.name+L.typ;
-    case 'str': return '"'+L.str.replace(/"/g,'""')+'"';
-    case 'num':
-      if (L.fmt === '&') return '&'+L.val.toString(16);
-      if (L.fmt === '%') return '%'+L.val.toString(2);
-      return L.val.toString();
-    default:
-      if (L.args) return L.$+fmt_args(L.args); // built-ins.
-      return fmt_expr(L.left)+' '+L.$+' '+fmt_expr(L.right);
-    }
+ switch (L.$) {
+  case 'tab': { var s = 'TAB('+fmt_expr(L.x); if (L.y) s += ','+fmt_expr(L.y); return s+')'; }
+  case 'err': return `[${L.msg} at ${L.at+1}]`;
+  case '()': return '('+fmt_expr(L.right)+')';
+  case 'fn': return 'fn '+L.name.name+fmt_args(L.args);
+  case 'neg': return '- '+fmt_expr(L.right);
+  case 'not': return 'not '+fmt_expr(L.right);
+  case 'name': return L.name+L.typ;
+  case 'str': return '"'+L.str.replace(/"/g,'""')+'"';
+  case 'num':
+   if (L.fmt === '&') return '&'+L.val.toString(16);
+   if (L.fmt === '%') return '%'+L.val.toString(2);
+   return L.val.toString();
+  default:
+   if (L.args) return L.$+fmt_args(L.args); // built-ins.
+   return fmt_expr(L.left)+' '+L.$+' '+fmt_expr(L.right);
+ }
 }
 function fmt_args(args) {
   var a, len=args.length, s='';
@@ -639,73 +644,149 @@ function fmt_args(args) {
   return s;
 }
 
-var basic = `
-10 REM TEMPERATURE CONVERSION (GOSUB VERSION)
-20 REM WITHOUT STRUCTURED BASIC
-30 REM THIS IS NOT THE WAY TO WRITE PROGRAMS!
-40 REM JOHN A COLL
-50 REM VERSION 1.0 /22 NOV 81
-60 MODE 7
-70 @%=&2020A :REM 02 dec places 10 cols, default @%=10
-80 PRINT "ENTER THE TEMPERATURE FOLLOWED BY"
-90 PRINT "THE FIRST LETTER OF THE TEMPERATURE"
-100 PRINT "SCALE. e.g. 100C or 72F or 320K"
-110 PRINT
-120 PRINT "Enter the temperature ";
-130 INPUT REPLY$
-140 TEMP=VAL(REPLY$)
-150 SCALE$=RIGHT$(REPLY$,1)
-160 GOODSCALE=FALSE
-170 IF SCALE$="C" THEN GOSUB 370
-180 IF SCALE$="F" THEN GOSUB 390
-190 IF SCALE$="K" THEN GOSUB 430
-200 IF NOT ( GOODSCALE AND TEMP>=-273.16) GOTO 260
-210 PRINT''
-220 PRINT TEMP; " Celsius"
-230 PRINT TEMP+273.16; " Kelvin"
-240 PRINT TEMP*9/5 + 32; " Fahrenheit"
-250 PRINT
-260 IF GOODSCALE THEN 310
-270 CLS
-280 PRINT "You must follow the temperature with"
-290 PRINT "the letter ""C"", ""F"" or ""K"" "
-300 PRINT "and nothing else"
-310 IF TEMP>=-273.16 THEN 360
-320 CLS
-330 PRINT "The temperature you have given is"
-340 PRINT "too cold for this universe! Try again"
-350 PRINT
-360 GOTO 110
-370 GOODSCALE=TRUE
-380 GOTO 460
-390 REM CONVERT TO CELSIUS
-400 TEMP=(TEMP-32)*5/9
-410 GOODSCALE=TRUE
-420 GOTO460
-430 REM CONVERT TO CELSIUS
-440 TEMP=TEMP-273.16
-450 GOODSCALE=TRUE
-460 RETURN
-`;
-
-// var lines = [
-//   'IFA=1PRINT"Y"ELSE40',
-//   'IF A=2+3*4 OR A=2^7+FN_x(2,b) THEN PRINT "Y" ELSE GOTO 40',
-//   'DIMa$(6),bb(x+1),c%(3,2,1)',
-//   'LETx%=2^7+1:y=5',
-//   'IFA=1PRINT"Y":A=2ELSEA=5',
-//   'PRINT"DO YOU WANT INSTRUCTIONS?";:G$=GET$:IFG$="Y"ORG$="y"PROCinstruct',
-//   'LET TODAY=23', // starts with TO
-//   'LET PRINT=1234.56', // PRINT is a reserved word
-//   'IFA=1PRINTTAB(4)A"HI"TAB(18)5ELSEPRINT"NO"',
-// ];
-
-var lines = basic.split('\n'), code=[];
-for (var zz of lines) {
-  if (zz) code.push(m_line(zz));
+var opLet=0,opDim=1,opPrint=2,opIfN=3,opJmp=4,opGoToExp=5,opGoSubExp=6,opReturn=7,opInput=8,opCls=9;
+var opNeg=10,opNot=11,opVar=12,opNum=13,opStr=14,opFn=15,opTab=16,opTabXY=17;
+var opAdd=20,opSub=21,opMul=22,opDiv=23,opIDiv=24,opMod=25,opAnd=26,opOr=27,opEor=28;
+var opEq=30,opNe=31,opGt=32,opGe=33,opLt=34,opLe=35;
+var opCodes={
+ '+':opAdd,'-':opSub,'*':opMul,'/':opDiv,'DIV':opIDiv,'MOD':opMod,'AND':opAnd,'OR':opOr,'EOR':opEor,
+ '=':opEq,'<>':opNe,'<':opLt,'<=':opLe,'>':opGt,'>=':opGe
+};
+function gen_code(code) {
+ var g={ops:[0],err:[],line:0,nvar:0,vars:new Map()}
+ for (var L of code) {
+  g.line = L.no;
+  gen_stmts(g,L.stmts);
+  if (L.err) gen_err(g,L.err);
+ }
+ g.ops[0] = g.nvar; // number of vars used.
+ return g;
 }
-console.log(JSON.stringify(code,null,2));
-fmt_code(code);
+function gen_err(g,err) {
+ g.err.push(g.line+' '+fmt_err(err,''));
+}
+function gen_var(g,key) {
+ var n,v=g.vars; if (v.has(key)) return v.get(key);
+ n=g.nvar++; v.set(key,n); return n;
+}
+function gen_stmts(g,stmts) {
+ for (var S of stmts) {
+   gen_stmt(g,S);
+   if (S.err) gen_err(g,S.err);
+ }
+ return s;
+}
+function gen_stmt(g,L) {
+ switch (L.$) {
+   case 'rem': return
+   case 'let': {
+    var n = gen_var(g,L.name.name+L.name.type);
+    push_expr(g,L.exp); g.ops.push(opLet,n); return;
+   }
+   case 'dim': { var dims=L.dims,i,dim,n,args;
+    for (i=0;i<dims;i++) { dim=dims[i];
+     args=dim.args; for (j=0;j<args.length;j++) push_expr(g,args[j]);
+     n = gen_var(g,dim.name.name+dim.name.type);
+     g.ops.push(opDim,n,args.length);
+    }
+    return;
+   }
+   case 'if': { var j_ov,j_ex;
+    push_expr(g,L.cond); g.ops.push(opIfN,0); j_ov=g.ops.length-1;
+    gen_stmts(g,L.then_s);
+    if (L.else_s.length) {
+     g.ops[j_ov] = g.ops.length; // patch jmp-over.
+     g.ops.push(opJmp,0); j_ex=g.ops.length-1;
+     gen_stmts(g,L.else_s);
+     g.ops[j_ex] = g.ops.length; // patch jmp-exit.
+    } else {
+     g.ops[j_ov] = g.ops.length; // patch jmp-over.
+    }
+    return;
+   }
+   case 'proc': return // TODO.
+   case 'goto': {
+    if (L.exp) { push_expr(g,L.exp); g.ops.push(opGoToExp); return; }
+    g.ops.push(opNum,g,L.line); g.ops.push(opGoToExp); return; // use dynamic for now.
+   }
+   case 'gosub': {
+    if (L.exp) { push_expr(g,L.exp); g.ops.push(opGoSubExp); return; }
+    g.ops.push(opNum,g,L.line); g.ops.push(opGoSubExp); return; // use dynamic for now.
+   }
+   case 'return': g.ops.push(opReturn); return;
+   case 'print': gen_print(g,L); return;
+   case 'input': gen_input(g,L); return;
+   case 'cls': g.ops.push(opCls); return;
+   case 'mode': return // TODO.
+   default: return 'UNKNOWN';
+ }
+}
+function gen_print(g,L) {
+ var i,vals=L.vals,sems=[];
+ for (i=0;i<vals.length;i+=2) {
+  sems.push(vals[i]);
+  push_expr(g,vals[i+1]);
+ }
+ g.ops.push(opPrint, sems.length, ...sems, L.sem);
+}
+function gen_input(g,L) {
+ var i,n,v,vars=L.vars,vns=[];
+ for (i=0;i<vars.length;i++) { v=vars[i];
+  vns.push(gen_var(g,v.name+v.typ));
+ }
+ g.ops.push(opInput, L.com, vars.length, ...vns);
+}
+function push_expr(g,L) {
+ switch (L.$) {
+  case 'tab': {
+   push_expr(g,L.x);
+   if (L.y) { push_expr(g,L.y); g.ops.push(opTabXY); return }
+   g.ops.push(opTab); return
+  }
+  case 'err': gen_err(g,L);
+  case '()': push_expr(L.right); return
+  case 'fn': {
+   for (var i=0;i<L.args;i++) push_expr(g,L.args[i]);
+   var n = gen_var(g, 'fn:'+L.name.name);
+   g.ops.push(opFn,n); return
+  }
+  case 'neg': push_expr(L.right); g.ops.push(opNeg); return
+  case 'not': push_expr(L.right); g.ops.push(opNot); return
+  case 'name': {
+   var n = gen_var(g, L.name+L.typ);
+   g.ops.push(opVar,n); return
+  }
+  case 'num': g.ops.push(opNum,L.val); return
+  case 'str': g.ops.push(opStr,L.str); return
+  default: {
+   var op=opCodes[L.$]; if (!op) throw new Error("missing opcode for "+L.$);
+   if (L.args) {
+    for (var i=0;i<L.args;i++) push_expr(g,L.args[i]); g.ops.push(op); return
+   } else {
+    push_expr(g,L.left); push_expr(g,L.right); g.ops.push(op); return
+   }
+  }
+ }
+}
+
+function compile_text(text) {
+ var i,ln,lines = text.split('\n'), code=[];
+ for (i=0;i<lines.length;i++) {
+   ln=lines[i]; if (ln) code.push(m_line(ln));
+ }
+ var gen = gen_code(code);
+ console.log(JSON.stringify(gen,null,2));
+ //fmt_code(code);
+ return gen;
+}
+
+function exec_line(line) {
+ var code = [m_line(line)];
+ var gen = gen_code(code);
+ console.log(JSON.stringify(gen,null,2));
+ //fmt_code(code);
+ return JSON.stringify(gen.ops);
+}
 
 // SBOX
 
@@ -736,10 +817,12 @@ function init_sbox(el,edn) {
 function keydown(e) {
  if (e.which === 13 && co) {
   var txt = inp.value;
-  co.appendChild(ctext(txt,'C'));
-  co.appendChild(ctext("hello",'R'));
-  cr.appendChild(ctext("•",'RR'));
-  cr.appendChild(ctext("⇨",'CC'));
+  co.appendChild(ctext(txt,'C')); // line of input.
+  var i,out = exec_line(txt).split('\n');
+  for (i=0;i<out.length;i++) {
+   co.appendChild(ctext(out[i],'R')); cr.appendChild(ctext("•",'RR')); // line of output.
+  }
+  cr.appendChild(ctext("⇨",'CC')); // next prompt.
   var n = getLC(co)+2; setLC(co, n);
   n = Math.max(Math.min(n+1,8),4); sb.style.height=(2+n*24)+'px'; // grow to 8 lines.
   focusEd(sb,edn);
