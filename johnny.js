@@ -40,7 +40,7 @@ function skip_ws(c,p) { while (c[p] === 32) ++p; return p; }
 function m_error(c,p,msg) {
   var at = skip_ws(c,p);
   while (p<c.length && c[p]!==58) ++p; // up to ":"
-  return { $:'error', at, msg, text:subs(c,at,p), aft:p };
+  return { $:'err', at, msg, text:subs(c,at,p), aft:p };
 }
 
 function m_stmts(c,p,req,stmts) {
@@ -644,8 +644,8 @@ function fmt_args(args) {
   return s;
 }
 
-var opLet=0,opDim=1,opPrint=2,opIfN=3,opJmp=4,opGoToExp=5,opGoSubExp=6,opReturn=7,opInput=8,opCls=9;
-var opNeg=10,opNot=11,opVar=12,opNum=13,opStr=14,opFn=15,opTab=16,opTabXY=17;
+var opLet=1,opDim=2,opPrint=3,opIfN=4,opJmp=5,opGoToExp=6,opGoSubExp=7,opReturn=8,opInput=9,opCls=10;
+var opNeg=11,opNot=12,opVar=13,opNum=14,opStr=15,opFn=16,opTab=17,opTabXY=18;
 var opAdd=20,opSub=21,opMul=22,opDiv=23,opIDiv=24,opMod=25,opAnd=26,opOr=27,opEor=28;
 var opEq=30,opNe=31,opGt=32,opGe=33,opLt=34,opLe=35;
 var opCodes={
@@ -663,7 +663,8 @@ function gen_code(code) {
  return g;
 }
 function gen_err(g,err) {
- g.err.push(g.line+' '+fmt_err(err,''));
+ var s = err.msg;
+ if (g.line>=0) g.err.push(s+' at line '+g.line); else g.err.push(s);
 }
 function gen_var(g,key) {
  var n,v=g.vars; if (v.has(key)) return v.get(key);
@@ -680,6 +681,7 @@ function gen_stmt(g,L) {
  switch (L.$) {
    case 'rem': return
    case 'let': {
+    if (!(L.name && L.exp)) return; // has error.
     var n = gen_var(g,L.name.name+L.name.type);
     push_expr(g,L.exp); g.ops.push(opLet,n); return;
    }
@@ -692,6 +694,7 @@ function gen_stmt(g,L) {
     return;
    }
    case 'if': { var j_ov,j_ex;
+    if (!(L.cond)) return; // has error.
     push_expr(g,L.cond); g.ops.push(opIfN,0); j_ov=g.ops.length-1;
     gen_stmts(g,L.then_s);
     if (L.else_s.length) {
@@ -737,13 +740,14 @@ function gen_input(g,L) {
  g.ops.push(opInput, L.com, vars.length, ...vns);
 }
 function push_expr(g,L) {
+ if (L===undefined) return // has error.
  switch (L.$) {
   case 'tab': {
    push_expr(g,L.x);
    if (L.y) { push_expr(g,L.y); g.ops.push(opTabXY); return }
    g.ops.push(opTab); return
   }
-  case 'err': gen_err(g,L);
+  case 'err': gen_err(g,L); return
   case '()': push_expr(L.right); return
   case 'fn': {
    for (var i=0;i<L.args;i++) push_expr(g,L.args[i]);
@@ -759,7 +763,9 @@ function push_expr(g,L) {
   case 'num': g.ops.push(opNum,L.val); return
   case 'str': g.ops.push(opStr,L.str); return
   default: {
-   var op=opCodes[L.$]; if (!op) throw new Error("missing opcode for "+L.$);
+   var op=opCodes[L.$]; if (!op) {
+    g.err.push("Missing opcode for "+L.$);
+   }
    if (L.args) {
     for (var i=0;i<L.args;i++) push_expr(g,L.args[i]); g.ops.push(op); return
    } else {
@@ -785,6 +791,7 @@ function exec_line(line) {
  var gen = gen_code(code);
  console.log(JSON.stringify(gen,null,2));
  //fmt_code(code);
+ if (gen.err.length) return gen.err.join('\n');
  return JSON.stringify(gen.ops);
 }
 
