@@ -7,21 +7,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Johnny BASIC</title>
 <style>
-html,body{margin:0;padding:0;background:#fdfaf9;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
-.bg{background:#303335}.bg2{background:#babfc2}.hid{display:none}
+html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
+.hid{display:none}
 .co{max-width:86em;margin:5em 1em;margin-left:auto;margin-right:auto}
 .hd{display:flex}.jc{margin-left:20px}.jb{margin-top:18px}.hl{font-size:11px}
-.sec{margin:2em 0 6em;font-size:18px;color:#303335}
+.sec{margin:2em 0 6em;font-size:18px}.gap{margin-top:2em}
 h2{margin:2.5em 0 1em;font-family:'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
 p{margin:1em 0;line-height:1.4}.norp{padding-right:0}
 em{font-family:monospace;font-weight:600;font-style:italic;padding:0 0.28em 0 0.12em;font-size:16px}
 code{display:block;font:18px 600 'Courier New',Courier,monospace;margin:1em 0;border-left:5px solid rgb(232, 66, 66);padding-left:1em}
 .ic{display:inline-block;width:18px;height:18px;position:relative;top:0.16em}
 .tip{border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;margin:1em 0;line-height:1.4}
-.warn{border-left:5px solid #f44;margin-top:5em}
-ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right:1em}.gap{margin-top:2em}
+.warn{border-left:5px solid #f44;margin:5em 0}
+ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right:1em}
 .btn{display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;margin-top:0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
 .sbox{margin-top:2em;border:1px solid #727272;height:98px}
+.back{display:inline-block;margin-left:13px;padding:0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
+.back:before{display:block;content:'';position:absolute;top:0;left:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:13px solid #fdb852;border-left:13px solid transparent}
+.back.nobr:before{display:none}
+.next{margin-top:3em;display:inline-block;padding:0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
+.next:after{display:block;content:'';position:absolute;top:0;right:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:13px solid #fdb852;border-right:13px solid transparent}
+@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}}
 </style>
 <script>function JB_fix(){setTimeout(function(s,p,d){(d=document).getElementById('JBerr').style.display='block';s=d.getElementsByTagName('script')[1];p=s.parentElement;p.removeChild(s);s=d.createElement('script');s.src='johnny.js';s.onerror=JB_fix;p.appendChild(s)},2000)}</script>
 <script src="johnny.js" defer onerror="JB_fix()"></script>
@@ -38,9 +44,10 @@ ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right
 <div class="hl">Version 0.01. Created by Andrew Towers of Monbulk, Australia.</div>
 </div>
 </div>
-<div class="sec" id="c-1">
-<noscript><div class="tip warn">Johnny BASIC needs Javascript (ironically)<br>Please allow Javascript in your Browser settings, then re-load the page.<br><a href="/" class="btn">Reload</a></div></noscript>
-<div id="JBerr" class="tip warn hid">Johnny BASIC is having trouble loading.<br>We'll keep trying, but you might need to re-load the page.<br><a href="/" class="btn">Reload</a></div>
+<div class="sec" id="S1">
+<noscript><div class="tip warn">Johnny BASIC needs Javascript (ironically)<br>Please allow Javascript in your Browser settings, then re-load the page.<br><a href="/tutorial" class="btn">Reload</a></div></noscript>
+<div id="JBerr" class="tip warn hid">Johnny BASIC is having trouble loading.<br>We'll keep trying, but you might need to re-load the page.<br><a href="/tutorial" class="btn">Reload</a></div>
+<p><a href="/" class="back">Leave Tutorial</a></p>
 <h2>1. Welcome</h2>
 <p>Welcome to the <em style="font-size:1em">Johnny</em><em>BASIC</em> programming tutorial.</p>
 <p>If you've never programmed a computer before, this tutorial will get you started.<br>
@@ -87,9 +94,10 @@ for the Programming Language, BASIC. In this example, the quotes surround the le
 The computer will become confused if you try to break up a single command across multiple lines!</p>
 <p class="tip"><b>Tip:</b> remember that the quote marks "" go around letters you wish to print out literally.<br>
 If you leave them out, the computer will try to make sense of the letters as a mathematical<br>formula, and it will become quickly confused.</p>
-<button class="btn" x-to="2">Next Chapter</button>
+<a href="#S2" class="btn next">Next Chapter</a>
 </div>
-<div class="sec hid" id="c-2">
+<div class="sec hjs" id="S2">
+<p><a href="#S1" class="back">Previous Chapter</a> <a href="/" class="back nobr">Leave Tutorial</a></p>
 <h2>3. Variables and Input</h2>
 </div>
 </div>
