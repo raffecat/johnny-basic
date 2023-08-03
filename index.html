@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="A programming environment for beginners where you can learn as you go.">
-<meta name="googlebot" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A programming environment and guide for beginners where you can learn as you go.">
+<meta name="author" content="Andrew Towers">
+<meta name="copyright" content="© Andrew Towers 2023. MIT License.">
+<meta name="repository" content="https://github.com/raffecat/johnny-basic">
 <title>Johnny BASIC</title>
 <style>
-html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
+html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font:10px Georgia,'Times New Roman',Times,serif}
 body{padding:1em}.hid{display:none}
 .co{margin:5em 1em;max-width:86em;margin-left:auto;margin-right:auto}
 .hd{display:flex}.jc{margin-left:20px}.jb{margin-top:18px}.hl{font-size:11px}
 .sec{margin:3em 0;font-size:18px}
-p{margin:1em 0;line-height:1.5}.norp{padding-right:0}p.near{margin:0.4em 0}
+p{margin:1em 0;line-height:1.5}p.near{margin:0.4em 0}
 .tip{margin:1.3em 0;border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;line-height:1.4}
 .warn{margin:5em 0;border-left:5px solid #f44}
 .btn{margin-top:0.8em;display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
@@ -21,16 +23,20 @@ p{margin:1em 0;line-height:1.5}.norp{padding-right:0}p.near{margin:0.4em 0}
 .tut:after{display:block;content:'';position:absolute;top:0;right:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:13px solid #fdb852;border-right:13px solid transparent}
 .tut.dim{background:#bfea76}.tut.dim:after{border-left-color:#bfea76}
 h3{margin:4em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
+td{font:18px Georgia,'Times New Roman',Times,serif}
+code{font:bold 18px 'Courier New',Courier,monospace;color:coral}i{font-size:0.94em;font-weight:300;color:gold}
 @media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}}
 </style>
 <script>function JB_fix(){setTimeout(function(s,p,d){(d=document).getElementById('JBerr').style.display='block';s=d.getElementsByTagName('script')[1];p=s.parentElement;p.removeChild(s);s=d.createElement('script');s.src='johnny.js';s.onerror=JB_fix;p.appendChild(s)},2000)}</script>
 <script src="johnny.js" defer onerror="JB_fix()"></script>
 </head>
 <body>
+<!-- icons -->
 <svg xmlns="http://www.w3.org/2000/svg" class="hid"><defs>
-<g id="ic-rst"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.7071 1.29289C14.0976 1.68342 14.0976 2.31658 13.7071 2.70711L12.4053 4.00896C17.1877 4.22089 21 8.16524 21 13C21 17.9706 16.9706 22 12 22C7.02944 22 3 17.9706 3 13C3 12.4477 3.44772 12 4 12C4.55228 12 5 12.4477 5 13C5 16.866 8.13401 20 12 20C15.866 20 19 16.866 19 13C19 9.2774 16.0942 6.23349 12.427 6.01281L13.7071 7.29289C14.0976 7.68342 14.0976 8.31658 13.7071 8.70711C13.3166 9.09763 12.6834 9.09763 12.2929 8.70711L9.29289 5.70711C9.10536 5.51957 9 5.26522 9 5C9 4.73478 9.10536 4.48043 9.29289 4.29289L12.2929 1.29289C12.6834 0.902369 13.3166 0.902369 13.7071 1.29289Z" fill="#0F1729"/></g>
+<g id="ic-rst"></g>
 </defs></svg>
 <div class="co">
+<!-- header -->
 <div class="hd">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="fill:rgb(255,0,0);stroke-width:0"></svg>
 <div class="jc">
@@ -38,6 +44,7 @@ h3{margin:4em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande
 <div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia.</div>
 </div>
 </div>
+<!-- content -->
 <div class="sec">
 <noscript><div class="tip warn">Johnny BASIC needs Javascript (ironically)<br>Please allow Javascript in your Browser settings, then re-load the page.<br><a href="/" class="btn">Reload</a></div></noscript>
 <div id="JBerr" class="tip warn hid">Johnny BASIC is having trouble loading.<br>We'll keep trying, but you might need to re-load the page.<br><a href="/" class="btn">Reload</a></div>
@@ -46,36 +53,36 @@ h3{margin:4em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande
 </div>
 <div class="sec">
 <p class="tip">This project is still in its early stages. The BASIC development environment is not yet complete,
-and the Interactive Guide is also still being developed. Please check back often!</p>
+and the Interactive Guide is also still being written. Please check back often!</p>
 </div>
 <div class="sec">
-<p>The following is a <i>scratchpad</i> that allows BASIC commands to be executed directly.<br>
+<p>The following is a <em>scratchpad</em> that allows BASIC commands to be executed directly.<br>
 Click or tap on the box below to enter BASIC commands:</p>
 <div class="sbox"></div>
 </div>
 <div class="sec">
 <h3>BASIC Quick Reference</h3>
 <table class="ref">
-<tr><td>REM this can be anything...                           </td><td>&nbsp;</td><td>the whole line is a comment (i.e. ignored)</td></tr>
-<tr><td>LET {name} = {value}                                  </td><td>&nbsp;</td><td>assign a new value to the named variable</td></tr>
-<tr><td>LET {name} ( Dim1, Dim2, ... ) = {value}              </td><td>&nbsp;</td><td>assign a new value to an array variable</td></tr>
-<tr><td>DIM {name} ( Dim1, Dim2, ... )                        </td><td>&nbsp;</td><td>allocate a (multi)-dimensional array of variables</td></tr>
-<tr><td>IF {condition} THEN {statements} [ ELSE {statements} ]</td><td>&nbsp;</td><td>conditionally execute one or the other</td></tr>
-<tr><td>FOR {name} = {first} TO {last} [ STEP {step} ]        </td><td>&nbsp;</td><td>do the following statements multiple times</td></tr>
-<tr><td>NEXT                                                  </td><td>&nbsp;</td><td>end of FOR loop (next iteration)</td></tr>
-<tr><td>PRINT {value}, {value}, ...                           </td><td>&nbsp;</td><td>print out (display) one or more values</td></tr>
-<tr><td>INPUT {name}, ...                                     </td><td>&nbsp;</td><td>ask for one or more values to be entered</td></tr>
-<tr><td>CLS                                                   </td><td>&nbsp;</td><td>clear the screen (clear previous output)</td></tr>
-<tr><td>PROC {name} ( {value}, ... )                          </td><td>&nbsp;</td><td>invoke a named procedure (with arguments)</td></tr>
-<tr><td>DEF PROC {name} ( {name}, ... )                       </td><td>&nbsp;</td><td>define a named procedure (with arguments)</td></tr>
-<tr><td>END PROC                                              </td><td>&nbsp;</td><td>end procedure definition</td></tr>
-<tr><td>LOCAL {name}, {name}, ...                             </td><td>&nbsp;</td><td>create local variables inside a PROC</td></tr>
-<tr><td>DATA {value}, {value}, ...                            </td><td>&nbsp;</td><td>declare literal data for READ</td></tr>
-<tr><td>READ {name}, {name}, ...                              </td><td>&nbsp;</td><td>read one or more data values into variables</td></tr>
-<tr><td>RESTORE {line}                                        </td><td>&nbsp;</td><td>set the next DATA statement to READ</td></tr>
-<tr><td>GOTO {line}                                           </td><td>&nbsp;</td><td>jump to a line number (not recommended!)</td></tr>
-<tr><td>GOSUB {line}                                          </td><td>&nbsp;</td><td>jump to a subroutine (not recommended!)</td></tr>
-<tr><td>RETURN                                                </td><td>&nbsp;</td><td>return from a GOSUB back to the caller</td></tr>
+<tr><td><code>rem</code> <i>this can be anything&hellip;</i></td><td>&nbsp;</td><td>the whole line is a comment (i.e. ignored)</td></tr>
+<tr><td><code>let</code> <i>name</i> <code>=</code> <i>value</i>  </td><td>&nbsp;</td><td>assign a new value to the named variable</td></tr>
+<tr><td><code>let</code> <i>name</i> <b>(</b> <i>dim1</i>, <i>dim2</i>, <i>&hellip;</i> <b>)</b> <b>=</b> <i>value</i></td><td>&nbsp;</td><td>assign a new value to an array variable</td></tr>
+<tr><td><code>dim</code> <i>name</i> <b>(</b> <i>dim1</i>, <i>dim2</i>, <i>&hellip;</i> <b>)</b></td><td>&nbsp;</td><td>allocate a (multi)-dimensional array of variables</td></tr>
+<tr><td><code>if</code> <i>condition</i> <code>then</code> <i>statements</i> [ <code>else</code> <i>statements</i> ]</td><td>&nbsp;</td><td>conditionally execute one or the other</td></tr>
+<tr><td><code>for</code> <i>name</i> <b>=</b> <i>first</i> <code>to</code> <i>last</i> [ <code>step</code> <i>step</i> ]</td><td>&nbsp;</td><td>do the following statements multiple times</td></tr>
+<tr><td><code>next</code></td><td>&nbsp;</td><td>end of FOR loop (next iteration)</td></tr>
+<tr><td><code>print</code> <i>value</i>, <i>value</i>, <i>&hellip;</i></td><td>&nbsp;</td><td>print out (display) one or more values</td></tr>
+<tr><td><code>input</code> <i>name</i>, <i>&hellip;</i></td><td>&nbsp;</td><td>ask for one or more values to be entered</td></tr>
+<tr><td><code>cls</code></td><td>&nbsp;</td><td>clear the screen (clear previous output)</td></tr>
+<tr><td><code>proc</code> <i>name</i> <b>(</b> <i>value</i>, <i>&hellip;</i> <b>)</b></td><td>&nbsp;</td><td>invoke a named procedure (with arguments)</td></tr>
+<tr><td><code>def proc</code> <i>name</i> <b>(</b> <i>name</i>, <i>&hellip;</i> <b>)</b></td><td>&nbsp;</td><td>define a named procedure (with arguments)</td></tr>
+<tr><td><code>end proc</code></td><td>&nbsp;</td><td>end procedure definition</td></tr>
+<tr><td><code>local</code> <i>name</i>, <i>name</i>, <i>&hellip;</i></td><td>&nbsp;</td><td>create local variables inside a PROC</td></tr>
+<tr><td><code>data</code> <i>value</i>, <i>value</i>, <i>&hellip;</i></td><td>&nbsp;</td><td>declare literal data for READ</td></tr>
+<tr><td><code>read</code> <i>name</i>, <i>name</i>, <i>&hellip;</i></td><td>&nbsp;</td><td>read one or more data values into variables</td></tr>
+<tr><td><code>restore</code> <i>line</i></td><td>&nbsp;</td><td>set the next DATA statement to READ</td></tr>
+<tr><td><code>goto</code> <i>line</i></td><td>&nbsp;</td><td>jump to a line number (not recommended!)</td></tr>
+<tr><td><code>gosub</code> <i>line</i></td><td>&nbsp;</td><td>jump to a subroutine (not recommended!)</td></tr>
+<tr><td><code>return</code></td><td>&nbsp;</td><td>return from a GOSUB back to the caller</td></tr>
 </table>
 <p>Use a <kdb>:</kdb> to join multiple statements on a single line.<br>
 You can omit the word LET and write bare assignments like <kbd>A=2</kbd>.</p>
