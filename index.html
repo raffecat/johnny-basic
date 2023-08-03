@@ -8,17 +8,18 @@
 <title>Johnny BASIC</title>
 <style>
 html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
-.bg{background:#303335}.bg2{background:#babfc2}.hid{display:none}
-.co{max-width:86em;margin:5em 1em;margin-left:auto;margin-right:auto}
+body{padding:1em}.hid{display:none}
+.co{margin:5em 1em;max-width:86em;margin-left:auto;margin-right:auto}
 .hd{display:flex}.jc{margin-left:20px}.jb{margin-top:18px}.hl{font-size:11px}
-.sec{margin:2em 0 6em;font-size:18px}
-p{margin:1em 0;line-height:1.4}.norp{padding-right:0}
-.tip{border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;margin:1em 0;line-height:1.4}
-.warn{border-left:5px solid #f44;margin-top:5em}
-.btn{display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;margin-top:0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
-.sbox{margin-top:2em;border:1px solid #727272;height:98px}
-.tut{display:inline-block;padding:0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
+.sec{margin:3em 0;font-size:18px}
+p{margin:1em 0;line-height:1.5}.norp{padding-right:0}p.near{margin:0.4em 0}
+.tip{margin:1.3em 0;border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;line-height:1.4}
+.warn{margin:5em 0;border-left:5px solid #f44}
+.btn{margin-top:0.8em;display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
+.sbox{margin:1.6em 0;border:1px solid #727272;height:100px}
+.tut{display:inline-block;margin-left:2px;padding:0 4px 0 6px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
 .tut:after{display:block;content:'';position:absolute;top:0;right:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:13px solid #fdb852;border-right:13px solid transparent}
+.tut.dim{background:#bfea76}.tut.dim:after{border-left-color:#bfea76}
 h3{margin:4em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
 @media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}}
 </style>
@@ -34,16 +35,50 @@ h3{margin:4em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="fill:rgb(255,0,0);stroke-width:0"></svg>
 <div class="jc">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" class="jb" alt="Johnny BASIC" width="600" height="80"><rect width="600" height="80" style="fill:rgb(0,0,255);stroke-width:0"></svg>
-<div class="hl">Version 0.01. Created by Andrew Towers of Monbulk, Australia.</div>
+<div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia.</div>
 </div>
 </div>
 <div class="sec">
 <noscript><div class="tip warn">Johnny BASIC needs Javascript (ironically)<br>Please allow Javascript in your Browser settings, then re-load the page.<br><a href="/" class="btn">Reload</a></div></noscript>
 <div id="JBerr" class="tip warn hid">Johnny BASIC is having trouble loading.<br>We'll keep trying, but you might need to re-load the page.<br><a href="/" class="btn">Reload</a></div>
-<p>New to BASIC? Or new to programming? Check out our <a href="/tutorial" class="tut">Interactive Tutorial</a></p>
+<p class="near" style="margin-left:18.8em">What is this? <a href="/about" class="tut dim">About Johnny BASIC</a></p>
+<p class="near">New to BASIC? Or new to programming? Check out our <a href="/tutorial" class="tut">Interactive Guide to BASIC</a></p>
+</div>
+<div class="sec">
+<p class="tip">This project is still in its early stages. The BASIC development environment is not yet complete,
+and the Interactive Guide is also still being developed. Please check back often!</p>
+</div>
+<div class="sec">
+<p>The following is a <i>scratchpad</i> that allows BASIC commands to be executed directly.<br>
+Click or tap on the box below to enter BASIC commands:</p>
 <div class="sbox"></div>
-<h3>What is Johnny BASIC?</h3>
-<p></p>
+</div>
+<div class="sec">
+<h3>BASIC Quick Reference</h3>
+<table class="ref">
+<tr><td>REM this can be anything...                           </td><td>&nbsp;</td><td>the whole line is a comment (i.e. ignored)</td></tr>
+<tr><td>LET {name} = {value}                                  </td><td>&nbsp;</td><td>assign a new value to the named variable</td></tr>
+<tr><td>LET {name} ( Dim1, Dim2, ... ) = {value}              </td><td>&nbsp;</td><td>assign a new value to an array variable</td></tr>
+<tr><td>DIM {name} ( Dim1, Dim2, ... )                        </td><td>&nbsp;</td><td>allocate a (multi)-dimensional array of variables</td></tr>
+<tr><td>IF {condition} THEN {statements} [ ELSE {statements} ]</td><td>&nbsp;</td><td>conditionally execute one or the other</td></tr>
+<tr><td>FOR {name} = {first} TO {last} [ STEP {step} ]        </td><td>&nbsp;</td><td>do the following statements multiple times</td></tr>
+<tr><td>NEXT                                                  </td><td>&nbsp;</td><td>end of FOR loop (next iteration)</td></tr>
+<tr><td>PRINT {value}, {value}, ...                           </td><td>&nbsp;</td><td>print out (display) one or more values</td></tr>
+<tr><td>INPUT {name}, ...                                     </td><td>&nbsp;</td><td>ask for one or more values to be entered</td></tr>
+<tr><td>CLS                                                   </td><td>&nbsp;</td><td>clear the screen (clear previous output)</td></tr>
+<tr><td>PROC {name} ( {value}, ... )                          </td><td>&nbsp;</td><td>invoke a named procedure (with arguments)</td></tr>
+<tr><td>DEF PROC {name} ( {name}, ... )                       </td><td>&nbsp;</td><td>define a named procedure (with arguments)</td></tr>
+<tr><td>END PROC                                              </td><td>&nbsp;</td><td>end procedure definition</td></tr>
+<tr><td>LOCAL {name}, {name}, ...                             </td><td>&nbsp;</td><td>create local variables inside a PROC</td></tr>
+<tr><td>DATA {value}, {value}, ...                            </td><td>&nbsp;</td><td>declare literal data for READ</td></tr>
+<tr><td>READ {name}, {name}, ...                              </td><td>&nbsp;</td><td>read one or more data values into variables</td></tr>
+<tr><td>RESTORE {line}                                        </td><td>&nbsp;</td><td>set the next DATA statement to READ</td></tr>
+<tr><td>GOTO {line}                                           </td><td>&nbsp;</td><td>jump to a line number (not recommended!)</td></tr>
+<tr><td>GOSUB {line}                                          </td><td>&nbsp;</td><td>jump to a subroutine (not recommended!)</td></tr>
+<tr><td>RETURN                                                </td><td>&nbsp;</td><td>return from a GOSUB back to the caller</td></tr>
+</table>
+<p>Use a <kdb>:</kdb> to join multiple statements on a single line.<br>
+You can omit the word LET and write bare assignments like <kbd>A=2</kbd>.</p>
 </div>
 </div>
 </body>
