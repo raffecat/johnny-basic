@@ -215,6 +215,11 @@ function m_print(c,p,at) {
         if (is_kw(c,p,ELSE,2)) break pr; // ELSE end print
         break;
       }
+      case 34: { // " literal string
+        s = m_string_i(c,p,0);
+        vals.push(sem, s); p = s.aft;
+        continue;
+      }
     }
     s = m_expr(c,p,1,0);
     if (s === null) break; // end print
@@ -354,16 +359,12 @@ function m_expr(c,p,opt,min_bp) {
   if (left !== null) {
     // infix operator loop.
     for (;;) {
-      p = left.aft; t = c[p]; op=''; lbp=3; // comparison.
+      p = left.aft; t = c[p]; op=''; lbp=3; // comparison
       while (t === 32) { t = c[++p]; }; at=p; // skip spaces
       switch (t) {
-        case 40: { ++p; // "("
-          left = m_arr_idx(c,p,at,left); continue;
-        }
         case 42: ++p; op='*'; lbp=5; break;
         case 43: ++p; op='+'; lbp=4; break;
         case 45: ++p; op='-'; lbp=4; break;
-        case 46: ++p; op='.'; lbp=5; break; // matrix multiply
         case 47: ++p; op='/'; lbp=5; break;
         case 94: ++p; op='^'; lbp=6; break;
         case 60: t = c[++p]; // "<"
@@ -440,7 +441,8 @@ function m_nud(c,p) {
     }
     case 70: case 102: t = c[p+1]; // "F"
       if (t === 78 || t === 110) { // "N"
-        return m_fn_proc(c,p+2,at,'fn');
+        right = m_fn_proc(c,p+2,at,'fn');
+        return m_may_index(c,right.aft,right);
       }
       break;
     case 78: case 110: // "N"
@@ -469,7 +471,7 @@ function m_nud(c,p) {
         }
       }
     }
-    return name;
+    return m_may_index(c,name.aft,name);
   }
   var num = m_number_i(c,p,'');
   if (num !== null) { p=num.aft;
@@ -483,6 +485,15 @@ function m_nud(c,p) {
     return num;
   }
   return null;
+}
+
+function m_may_index(c,p,left) {
+  // permitted to use array-indexing.
+  p = skip_ws(c,p);
+  if (c[p] === 40) { // "("
+    return m_arr_idx(c,p+1,p,left);
+  }
+  return left;
 }
 
 function m_op_fn(c,p,at,op) {
@@ -671,6 +682,9 @@ function gen_err(g,err) {
  var s = err.msg;
  if (g.line>=0) g.err.push(s+' at line '+g.line); else g.err.push(s);
 }
+function gen_bad(g) {
+  if (!g.err.length) g.err.push("Bad code"); // fallback.
+}
 function gen_var(g,name,typ) {
  if (typ) name += typ;
  var n,v=g.varmap; if (v.has(name)) return v.get(name);
@@ -687,7 +701,7 @@ function gen_stmt(g,L) {
  switch (L.$) {
    case 'rem': return
    case 'let': {
-    if (!(L.name && L.exp)) return; // has error.
+    if (!(L.name && L.exp)) return gen_bad(g);
     var n = gen_var(g,L.name.name,L.name.type);
     push_expr(g,L.exp); g.ops.push(opLet,n); return;
    }
@@ -700,7 +714,7 @@ function gen_stmt(g,L) {
     return;
    }
    case 'if': { var j_ov,j_ex;
-    if (!(L.cond)) return; // has error.
+    if (!(L.cond)) return gen_bad(g);
     push_expr(g,L.cond); g.ops.push(opIfN,0); j_ov=g.ops.length-1;
     gen_stmts(g,L.then_s);
     if (L.else_s.length) {
@@ -713,7 +727,7 @@ function gen_stmt(g,L) {
     }
     return;
    }
-   case 'proc': return // TODO.
+   case 'proc': return gen_bad(g); // TODO.
    case 'goto': {
     if (L.exp) { push_expr(g,L.exp); g.ops.push(opGoToExp); return; }
     g.ops.push(opNum,g,L.line); g.ops.push(opGoToExp); return; // use dynamic for now.
@@ -726,7 +740,7 @@ function gen_stmt(g,L) {
    case 'print': gen_print(g,L); return;
    case 'input': gen_input(g,L); return;
    case 'cls': g.ops.push(opCls); return;
-   case 'mode': return // TODO.
+   case 'mode': return gen_bad(g); // TODO.
    default: return 'UNKNOWN';
  }
 }
@@ -746,7 +760,7 @@ function gen_input(g,L) {
  g.ops.push(opInput, L.com, vars.length, ...vns);
 }
 function push_expr(g,L) {
- if (L===undefined) return // has error.
+ if (L===undefined) return gen_bad(g);
  switch (L.$) {
   case 'tab': {
    push_expr(g,L.x);
@@ -754,14 +768,14 @@ function push_expr(g,L) {
    g.ops.push(opTab); return
   }
   case 'err': gen_err(g,L); return
-  case '()': push_expr(L.right); return
+  case '()': push_expr(g,L.right); return
   case 'fn': {
    for (var i=0;i<L.args;i++) push_expr(g,L.args[i]);
    var n = gen_var(g,'fn:',L.name.name);
    g.ops.push(opFn,n); return
   }
-  case 'neg': push_expr(L.right); g.ops.push(opNeg); return
-  case 'not': push_expr(L.right); g.ops.push(opNot); return
+  case 'neg': push_expr(g,L.right); g.ops.push(opNeg); return
+  case 'not': push_expr(g,L.right); g.ops.push(opNot); return
   case 'name': {
    var n = gen_var(g,L.name,L.typ);
    g.ops.push(opVar,n); return
@@ -798,7 +812,7 @@ function eval_code(ops, G) {
   case opPrint: { // nsems, ...sems, last-sem
    i=ops[p++]; a='';
    while (i--) { n=ops[p++]; // 0=, 1=; 2='
-    if (a) a += ' '; a += stack[--top].toString();
+    if (a) a += ' '; a += (stack[--top]||'').toString();
    }
    n=ops[p++]; if (!n) a += "\n"; // last-sem.
    G.out.push(a); break;
@@ -841,7 +855,7 @@ function eval_code(ops, G) {
  }
 }
 
-// Misc stuff.
+// Glue.
 
 function compile_text(text, G) {
  var i,ln,lines = text.split('\n'), code=[];
@@ -863,9 +877,9 @@ function exec_line(line, G) {
  return G.out.join('');
 }
 
-// SBOX
+// Scratchpad.
 
-var css = ".hjs{display:none}#inp{display:none;position:absolute;z-index:0;border:0;padding:0;margin:0;outline:0;font:18px monospace;font-weight:600;line-height:24px;width:100%;background:#f2f2f2;color:#303335}.sbox{margin-top:2em;border:1px solid #727272;padding:1px 4px 1px 26px;font:18px monospace;line-height:24px;white-space:nowrap;position:relative;height:98px;overflow-y:scroll;background:#fdfaf9;color:#303335}.sbcr{position:absolute;left:1px;top:1px;width:12px;padding:1px 4px;color:#877c7c;background:#ccc;min-height:96px;}.scode{position:absolute;left:27px;top:1px;bottom:1px;right:3px}.C{font-weight:600;height:24px}.RR{height:24px}.CC{font-weight:600;height:24px}.R{height:24px}@media(prefers-color-scheme:dark){.sbox{background:#383e41;color:#fff}#inp{background:#414a4e;color:#fff}}";
+var css = ".hjs{display:none}#inp{display:none;position:absolute;z-index:0;border:0;padding:0;margin:0;outline:0;font:18px monospace;font-weight:600;line-height:24px;width:100%;background:#f2f2f2;color:#303335}.sbox{border:1px solid #727272;padding:1px 4px 1px 26px;font:18px monospace;line-height:24px;white-space:nowrap;position:relative;height:98px;overflow-y:scroll;background:#fdfaf9;color:#303335}.sbcr{position:absolute;left:1px;top:1px;width:12px;padding:1px 4px;color:#877c7c;background:#ccc;min-height:96px;}.scode{position:absolute;left:27px;top:1px;bottom:1px;right:3px}.C{font-weight:600;height:24px}.RR{height:24px}.CC{position:relative;top:-2px;font-weight:600;height:24px}.R{height:24px}@media(prefers-color-scheme:dark){.sbox{background:#383e41;color:#fff}#inp{background:#414a4e;color:#fff}}";
 var h=ElT('head'),s=Tag('style');s.styleSheet?s.styleSheet.cssText=css:s.textContent=css;h.appendChild(s);
 var inp=Tag('input');inp.type="text";inp.id='inp';inp.style.display='none';ElT('body').appendChild(inp);
 var focus_sb=null;
@@ -886,7 +900,7 @@ window.addEventListener("hashchange",navTo);navTo();
 function new_sbox(sb) {
  var cr = Tag('div','sbcr'), co = Tag('div','scode');
  co.role='log'; co.ariaLive='assertive'; co.ariaLabel='Scratch pad';
- cr.appendChild(ctext('⇨','CC')); co.tabIndex = -1;
+ cr.appendChild(ctext('»','CC')); co.tabIndex = -1;
  sb.appendChild(cr); sb.appendChild(co);
  var sbox = { sb, cr, co, lines:0, G:new_gctx() }
  sb.johnnySBox = sbox;
@@ -905,8 +919,8 @@ function keydown(e) {
     cr.appendChild(ctext("•",'RR'));
    }
   }
-  cr.appendChild(ctext("⇨",'CC')); // next prompt.
-  n = sbox.lines; n = Math.max(Math.min(n+1,8),4); sb.style.height=(2+n*24)+'px'; // grow to 8 lines.
+  cr.appendChild(ctext("»",'CC')); // next prompt. Math.min(n+1,8)
+  n = sbox.lines; n = Math.max(n+1,4); sb.style.height=(2+n*24)+'px'; // grow height.
   focusEd(sbox);
   return Stop(e);
  }
