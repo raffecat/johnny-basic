@@ -8,24 +8,24 @@
 <title>Johnny BASIC</title>
 <style>
 html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
-.hid{display:none}
+body{padding:1em}.hid{display:none}
 .co{max-width:86em;margin:5em 1em;margin-left:auto;margin-right:auto}
 .hd{display:flex}.jc{margin-left:20px}.jb{margin-top:18px}.hl{font-size:11px}
-.sec{margin:2em 0 6em;font-size:18px}.gap{margin-top:2em}
+.sec{margin:2em 0 6em;font-size:18px}.gap{margin-top:3em}
 h2{margin:2.5em 0 1em;font-family:'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
-p{margin:1em 0;line-height:1.4}.norp{padding-right:0}
+p{margin:1em 0;line-height:1.5}.norp{padding-right:0}
 em{font-family:monospace;font-weight:600;font-style:italic;padding:0 0.28em 0 0.12em;font-size:16px}
-code{display:block;font:18px 600 'Courier New',Courier,monospace;margin:1em 0;border-left:5px solid rgb(232, 66, 66);padding-left:1em}
+code{margin:1em 0;display:block;font:18px 600 'Courier New',Courier,monospace;border-left:9px solid rgb(232, 66, 66);padding-left:1em}
 .ic{display:inline-block;width:18px;height:18px;position:relative;top:0.16em}
-.tip{border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;margin:1em 0;line-height:1.4}
-.warn{border-left:5px solid #f44;margin:5em 0}
+.tip{margin:1.3em 0;border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;line-height:1.6}
+.warn{margin:5em 0;border-left:5px solid #f44}
 ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right:1em}
-.btn{display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;margin-top:0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
-.sbox{margin-top:2em;border:1px solid #727272;height:98px}
-.back{display:inline-block;margin-left:13px;padding:0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
+.btn{margin-top:0.8em;display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
+.sbox{margin:1.6em 0;border:1px solid #727272;height:100px}
+.back{display:inline-block;margin-left:13px;padding:0 12px 0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
 .back:before{display:block;content:'';position:absolute;top:0;left:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:13px solid #fdb852;border-left:13px solid transparent}
-.back.nobr:before{display:none}
-.next{margin-top:3em;display:inline-block;padding:0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
+.back.nobr{padding:0 12px}.back.nobr:before{display:none}
+.next{margin-top:3em;display:inline-block;padding:0 8px 0 12px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
 .next:after{display:block;content:'';position:absolute;top:0;right:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:13px solid #fdb852;border-right:13px solid transparent}
 @media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}}
 </style>
@@ -41,15 +41,15 @@ ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="fill:rgb(255,0,0);stroke-width:0"></svg>
 <div class="jc">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" class="jb" alt="Johnny BASIC" width="600" height="80"><rect width="600" height="80" style="fill:rgb(0,0,255);stroke-width:0"></svg>
-<div class="hl">Version 0.01. Created by Andrew Towers of Monbulk, Australia.</div>
+<div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia.</div>
 </div>
 </div>
 <div class="sec" id="S1">
 <noscript><div class="tip warn">Johnny BASIC needs Javascript (ironically)<br>Please allow Javascript in your Browser settings, then re-load the page.<br><a href="/tutorial" class="btn">Reload</a></div></noscript>
 <div id="JBerr" class="tip warn hid">Johnny BASIC is having trouble loading.<br>We'll keep trying, but you might need to re-load the page.<br><a href="/tutorial" class="btn">Reload</a></div>
-<p><a href="/" class="back">Leave Tutorial</a></p>
+<p><a href="/" class="back">Leave the Guide</a></p>
 <h2>1. Welcome</h2>
-<p>Welcome to the <em style="font-size:1em">Johnny</em><em>BASIC</em> programming tutorial.</p>
+<p>Welcome to the interactive <em style="font-size:1em">Johnny</em><em>BASIC</em> programming guide.</p>
 <p>If you've never programmed a computer before, this tutorial will get you started.<br>
 We'll start with the basics and gently introduce the topic of writing programs.</p>
 <p>Johnny BASIC is a safe "sandbox" environment, so don't worry! You can't break anything.<br>
@@ -64,7 +64,7 @@ in 1964 for liberal arts students!</p>
 <p>It has a simple structure: each line begins with a <em>command word</em> that
 chooses the action to take.<br>Commands are typically followed by some <em class="norp">parameters</em>,
 which differ from one command to another.</p>
-<p>Let's try something! The following box is a <i>scratch pad</i> that allows commands to be entered
+<p class="gap">Let's try something! The following box is a <i>scratchpad</i> that allows commands to be entered
 for the computer to follow (or, execute!)</p>
 <p>Click or tap on the box below and try typing in the command:</p>
 <code>print "hello"</code>
@@ -74,7 +74,7 @@ for the computer to follow (or, execute!)</p>
 symbols in the right places&mdash;<i>but not the right places for the English language!</i> They must be in the right places
 for the Programming Language, BASIC. In this example, the quotes surround the letters you wish to print out.</p>
 <p>Try entering a few more <kbd>print</kbd> commands to print out different messages.</p>
-<p>The <kbd>print</kbd> command can also print out numbers:</p>
+<p class="gap">The <kbd>print</kbd> command can also print out numbers:</p>
 <code>print 42</code>
 <div class="sbox"></div>
 <p>Actually, you can request calculations and ask the computer to print out the result as well:</p>
@@ -83,21 +83,21 @@ for the Programming Language, BASIC. In this example, the quotes surround the le
 <div class="sbox"></div>
 <p>Try entering your own formulas&mdash;experiment!</p>
 <div class="tip"><b>Tip:</b> BASIC supports:<ul class="no"><li><kbd class="w">+</kbd> to add</li><li><kbd class="w">-</kbd> to subtract</li>
- <li><kbd class="w">*</kbd> to multiply</li><li><kbd class="w">/</kbd> to divide</li><li><kbd class="w">^</kbd> to raise to a power (shift 6)</li>
- <li><kbd class="w" style="padding-left:0.4em;position:relative;top:-2px;">()</kbd> for grouping</li></ul>
- Note that <kbd>*</kbd> and <kbd>/</kbd> are used for multiplication and division,<br>because they're keys on the keyboard and easy to type in!</div>
-<p>You can combine all of the above, asking the computer to print a combination of things:</p>
+<li><kbd class="w">*</kbd> to multiply</li><li><kbd class="w">/</kbd> to divide</li><li><kbd class="w">^</kbd> to raise to a power</li>
+<li><kbd class="w" style="padding-left:0.4em;position:relative;top:-2px;">()</kbd> for grouping</li></ul>
+Note that <kbd>*</kbd> and <kbd>/</kbd> are used for multiplication and division,<br>because they're keys on the keyboard and easy to type in!</div>
+<p class="gap">You can combine all of the above, asking the computer to print a combination of things:</p>
 <code>print "My age is" 5*6 "and I am happy!"</code>
-<code>print "It takes" 3*24 "steps to get there and" (2^5)+8 "steps to get home."</code>
+<code>print "It takes" 3*24 "steps to get there and" 2^5+8 "steps to get home."</code>
 <div class="sbox"></div>
-<p class="tip"><b>Tip:</b> Enter each command entirely on a single line, even if it starts scrolling across horizontally as you type it in.
+<p class="tip"><b>Tip:</b> Enter each command entirely on a single line, even if it starts scrolling across horizontally as you type it.
 The computer will become confused if you try to break up a single command across multiple lines!</p>
 <p class="tip"><b>Tip:</b> remember that the quote marks "" go around letters you wish to print out literally.<br>
 If you leave them out, the computer will try to make sense of the letters as a mathematical<br>formula, and it will become quickly confused.</p>
 <a href="#S2" class="next">Next Chapter</a>
 </div>
 <div class="sec hjs" id="S2">
-<p><a href="#S1" class="back">Previous Chapter</a> <a href="/" class="back nobr">Leave Tutorial</a></p>
+<p><a href="#S1" class="back">Previous Chapter</a> <a href="/" class="back nobr">Leave the Guide</a></p>
 <h2>3. Variables and Input</h2>
 </div>
 </div>
