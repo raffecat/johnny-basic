@@ -14,18 +14,17 @@ function kw(caps) { // "THEN" => U8[84,116, 72,104, 69,101, 78,110]
   return v;
 }
 
-var REM=kw("REM"),LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),NEXT=kw("NEXT");
-var INPUT=kw("INPUT"),REPEAT=kw("REPEAT"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO"),TAB=kw("TAB");
-var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),READ=kw("READ"),RESTORE=kw("RESTORE"),CLS=kw("CLS"),LINE=kw("LINE");
-var PRINT=kw("PRINT"),PROC=kw("PROC"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
-var MODE=kw("MODE");
-var n_funs = [
+var REM=kw("REM"),LET=kw("LET"),DIM=kw("DIM"),THEN=kw("THEN"),ELSE=kw("ELSE"),FOR=kw("FOR"),TO=kw("TO"),NEXT=kw("NEXT");
+var INPUT=kw("INPUT"),REPEAT=kw("REPEAT"),UNTIL=kw("UNTIL"),WHILE=kw("WHILE"),CASE=kw("CASE"),END=kw("END"),GOTO=kw("GOTO"),TAB=kw("TAB");
+var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),DATA=kw("DATA"),READ=kw("READ"),RESTORE=kw("RESTORE"),CLS=kw("CLS"),LINE=kw("LINE");
+var PRINT=kw("PRINT"),PROC=kw("PROC"),DIV=kw("DIV"),MOD=kw("MOD"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
+var MODE=kw("MODE"),COLOUR=kw("COLOUR"),COLOR=kw("COLOR"),GCOL=kw("GCOL"); // BBC
+var MOVE=kw("MOVE"),DRAW=kw("DRAW"),PLOT=kw("PLOT"),VDU=kw("VDU"); // BBC
+var b_funs = [
   'GET','INKEY','RND','TIME','DIM',
   'FLOOR','CEIL','ABS','ATN','COS','EXP','INT','SGN','SIN','SQR','LOG','LN','TAN','PI',
-  'LEN','INSTR','ASC','VAL'
-];
-var s_funs = [ // fns ending with '$'
-  'GET','INKEY','LEFT','MID','RIGHT','STRING','CHR','STR','BIN','HEX','TAT','UC','LC'
+  'LEN','INSTR','ASC','VAL',
+  'GET$','INKEY$','LEFT$','MID$','RIGHT$','STRING$','CHR$','STR$','BIN$','HEX$','AT$','UPPER$','LOWER$'
 ];
 
 function log(c,p,msg) {
@@ -66,14 +65,22 @@ function m_stmt(c,p,req) {
     case 67: case 99: { // "C"
       t = is_kw(c,p,CLS,3);
       if (t) return { $:'cls', at, aft:t }
+      t = is_kw(c,p,COLOR,1);
+      if (t) return m_color(c,t,at);
+      t = is_kw(c,p,COLOUR,1);
+      if (t) return m_color(c,t,at);
       break;
     }
     case 68: case 100: {  // "D"
       t = is_kw(c,p,DIM,3);
       if (t) return m_dim(c,t,at);
+      t = is_kw(c,p,DRAW,2);
+      if (t) return m_draw(c,t,at);
       break;
     }
     case 70: case 102: { // "F"
+      t = is_kw(c,p,FOR,1);
+      if (t) return m_for(c,t,at);
       break;
     }
     case 71: case 103: { // "G"
@@ -81,6 +88,8 @@ function m_stmt(c,p,req) {
       if (t) return m_goto_line(c,t,"Expecting a line number after GOTO");
       t = is_kw(c,p,GOSUB,3);
       if (t) return m_goto_line(c,t,"Expecting a line number after GOTO");
+      t = is_kw(c,p,GCOL,2);
+      if (t) return m_gcol(c,t,at);
       break;
     }
     case 73: case 105: { t = c[p+1]; // "I"
@@ -97,8 +106,15 @@ function m_stmt(c,p,req) {
       break;
     }
     case 77: case 109: { // "M"
-      t = is_kw(c,p,MODE,4);
+      t = is_kw(c,p,MODE,2);
       if (t) return m_mode(c,t,at);
+      t = is_kw(c,p,MOVE,4);
+      if (t) return m_move(c,t,at);
+      break;
+    }
+    case 78: case 110: { // "N"
+      t = is_kw(c,p,NEXT,1);
+      if (t) return { $:'next', at, aft:t }
       break;
     }
     case 80: case 112: { // "P"
@@ -113,6 +129,18 @@ function m_stmt(c,p,req) {
       if (t) return m_rem(c,t,at);
       t = is_kw(c,p,RETURN,1);
       if (t) return { $:'return', at, aft:t }
+      t = is_kw(c,p,REPEAT,3);
+      if (t) return { $:'repeat', at, aft:t }
+      break;
+    }
+    case 85: case 117: { // "U"
+      t = is_kw(c,p,UNTIL,1);
+      if (t) return m_until(c,t,at);
+      break;
+    }
+    case 86: case 118: { // "V"
+      t = is_kw(c,p,VDU,1);
+      if (t) return m_vdu(c,t,at);
       break;
     }
   }
@@ -131,6 +159,37 @@ function m_mode(c,p,at) {
   var mode = m_expr(c,p,0,0);
   return { $:'mode', at, mode, aft:mode.aft };
 }
+function m_color(c,p,at) {
+  p = skip_ws(c,p);
+  var col = m_expr(c,p,0,0); p = skip_ws(p,col.aft);
+  return { $:'color', at, col, aft:p };
+}
+function m_gcol(c,p,at) {
+  var err=null; p = skip_ws(c,p);
+  var pxop = m_expr(c,p,0,0); p = skip_ws(p,pxop.aft);
+  if (c[p] === 44) ++p; else err = m_error(c,p,"Expecting , in GCOL")
+  var gcol = m_expr(c,p,0,0); p = skip_ws(p,gcol.aft);
+  return { $:'gcol', at, pxop, gcol, err, aft:p };
+}
+function m_move(c,p,at) {
+  var err=null; p = skip_ws(c,p);
+  var x = m_expr(c,p,0,0); p = skip_ws(p,x.aft);
+  if (c[p] === 44) ++p; else err = m_error(c,p,"Expecting , in MOVE")
+  var y = m_expr(c,p,0,0); p = skip_ws(p,y.aft);
+  return { $:'move', at, x, y, err, aft:p };
+}
+function m_draw(c,p,at) {
+  var err=null; p = skip_ws(c,p);
+  var x = m_expr(c,p,0,0); p = skip_ws(p,x.aft);
+  if (c[p] === 44) ++p; else err = m_error(c,p,"Expecting , in DRAW")
+  var y = m_expr(c,p,0,0); p = skip_ws(p,y.aft);
+  return { $:'draw', at, x, y, err, aft:p };
+}
+function m_vdu(c,p,at) {
+  var args=[]; p = skip_ws(c,p);
+  p = m_args(c,p,args);
+  return { $:'vdu', at, args, aft:p };
+}
 
 function m_input(c,p,at) {
   // comma causes '?' to be printed. ';' means the same.
@@ -142,7 +201,7 @@ function m_input(c,p,at) {
   for (;;) {
     s = m_ident_i(c,p,1,1);
     if (!s) break;
-    vars.push(s);
+    vars.push(s.name);
     p = skip_ws(c,s.aft);
     if (c[p] === 44) { ++p; continue } // ","
     else break;
@@ -169,7 +228,7 @@ function m_let(c,p,at,opt) {
     if (opt) return null;
     err = m_error(c,p,"Missing name in Let statement"); p=err.aft;
   }
-  return { $:'let', at, name, exp, err, aft:p }
+  return { $:'let', at, name:name.name, exp, err, aft:p }
 }
 
 function m_dim(c,p,at) {
@@ -183,7 +242,7 @@ function m_dim(c,p,at) {
       if (c[p] === 41) ++p; // ")"
       else { err = m_error(c,p,"Missing ) to end Dim (opened at "+(a1+1)+")"); p=err.aft; }
     } else { err = m_error(c,p,"Missing ( after name in Dim"); p=err.aft; }
-    dims.push({ at:a0, name, args });
+    dims.push({ at:a0, name:name.name, args });
     if (!err && c[p] === 44) { ++p; continue; } // ","
     else break;
   }
@@ -208,7 +267,7 @@ function m_print(c,p,at) {
       case 59: sem=1; ++p; continue; // ";" semis join without gaps
       case 84: case 116: { // "T"
         s = m_tab(c,p,sem);
-        if (s) { vals.push(sem, exp); p=s.aft; continue; } // TAB()
+        if (s) { vals.push(sem,s); p=s.aft; continue; } // TAB()
         break;
       }
       case 69: case 101: { // "E"
@@ -237,10 +296,10 @@ function m_tab(c,p,sem) {
     if (c[p] === 44) { // ","
       y = m_expr(c,p+1,0,0); p=skip_ws(c,y.aft);
     }
-    if (c[p] !== 41) { // ")"
+    if (c[p] === 41) ++p; else { // ")"
       err = m_error(c,p,"Missing ) to end TAB()"); p=err.aft;
     }
-    return { pm:'tab', at, sem, x, y, err, aft:p }
+    return { $:'tab', at, sem, x, y, err, aft:p }
   }
 }
 
@@ -268,6 +327,39 @@ function m_if(c,p,at) {
   return { $:'if', at, cond, then_s, else_s, err, aft:p }
 }
 
+function m_for(c,p,at) {
+  // FOR•{name}={expr}TO{expr}[STEP{expr}]
+  var t, name, from=null, to=null, step=null, err=null;
+  p = skip_ws(c,p);
+  name = m_ident_i(c,p,1,1);
+  if (name) {
+    p = skip_ws(c,name.aft);
+    if (c[p] === 61) { // "="
+      from = m_expr(c,p+1,0,0); p=from.aft;
+      t = is_kw(c,p,TO,2);
+      if (t) {
+        to = m_expr(c,t,0,0); p=skip_ws(c,to.aft);
+      } else {
+        err = m_error(c,p,"Missing TO in For statement"); p=err.aft;
+      }
+    } else {
+      err = m_error(c,p,"Missing = in For statement"); p=err.aft;
+    }
+  } else {
+    err = m_error(c,p,"Missing name in For statement"); p=err.aft;
+  }
+  return { $:'for', at, name:name.name, from, to, step, err, aft:p }
+}
+
+function m_until(c,p,at) {
+  var cond, err=null;
+  cond = m_expr(c,p,1,0);
+  if (cond !== null) p=cond.aft; else {
+    err = m_error(c,p,"Incomplete UNTIL statement (Condition expected)"); p=err.aft;
+  }
+  return { $:'until', at, cond, err, aft:p }
+}
+
 function m_stmts_goto(c,p,req,stmts) {
   var s = m_goto_line(c,p,null);
   if (s !== null) { stmts.push(s); return s.aft; }
@@ -290,14 +382,11 @@ function m_goto_line(c,p,stmt) {
 }
 
 function m_ident_i(c,p,opt,suf) {
-  var at=p, t=c[p], typ='', e;
+  var at=p, t=c[p];
   while (isAlpha(t)) t=c[++p];
-  if (p > at) { e=p;
-    if (suf) {
-      if (t === 37) { ++p; typ='%' } // "%"
-      else if (t === 36) { ++p; typ='$' } // "$"
-    }
-    return { $:'name', at, name:subs(c,at,e), typ, aft:p }
+  if (p > at) {
+    if (suf && (t === 36 || t === 37)) ++p; // "$","%"
+    return { $:'name', at, name:subs(c,at,p), aft:p }
   }
   if (opt) return null; return m_error(c,p,"Name expected");
 }
@@ -458,17 +547,9 @@ function m_nud(c,p) {
     // detect built-ins.
     // FIXME: use a switch-matcher like m_stmt.
     var low = name.name.toUpperCase();
-    if (name.typ === '') {
-      for (var i=0;i<n_funs.length;i++) {
-        if (n_funs[i] === low) {
-          return m_op_fn(c,name.aft,at,low)
-        }
-      }
-    } else if (name.typ === '$') {
-      for (var i=0;i<s_funs.length;i++) {
-        if (s_funs[i] === low) {
-          return m_op_fn(c,name.aft,at,low+'$')
-        }
+    for (var i=0;i<b_funs.length;i++) {
+      if (b_funs[i] === low) {
+        return m_op_fn(c,name.aft,at,low)
       }
     }
     return m_may_index(c,name.aft,name);
@@ -534,7 +615,7 @@ function m_fn_proc(c,p,at,op) {
     if (c[p] === 41) ++p; // ")"
     else err = m_error(c,p,"Missing ) to end arguments (opened at "+(at+1)+")");
   }
-  return { $:op, at, name, args, err, aft:p }
+  return { $:op, at, name:name.name, args, err, aft:p }
 }
 
 function is_kw(c,p,kw,min) {
@@ -568,9 +649,8 @@ function fmt_code(code) {
   for (var L of code) {
     var s = fmt_stmts(L.stmts);
     if (L.err) s = fmt_err(L.err, s);
-    s = L.no+' '+s;
+    if (L.no >= 0) s = L.no+' '+s;
     res.push(s);
-    console.log(s);
   }
   return res;
 }
@@ -590,14 +670,22 @@ function fmt_err(L,s) {
 function fmt_stmt(L) {
   switch (L.$) {
     case 'rem': return `rem ${L.text}`;
-    case 'let': return `let ${L.name.name}${L.name.typ} = ${fmt_expr(L.exp)}`;
+    case 'let': return `let ${L.name} = ${fmt_expr(L.exp)}`;
     case 'dim': return `dim`;
     case 'if': {
       var s = 'if '+fmt_expr(L.cond)+' then '+fmt_stmts(L.then_s);
       if (L.else_s.length) s += ' else '+fmt_stmts(L.else_s);
       return s;
     }
-    case 'proc': return 'proc '+L.name.name+fmt_args(L.args);
+    case 'for': {
+      var s = 'for '+L.name+' = '+fmt_expr(L.from)+' to '+fmt_expr(L.to);
+      if (L.step) s += ' step '+fmt_expr(L.step);
+      return s;
+    }
+    case 'next': return 'next';
+    case 'repeat': return 'repeat';
+    case 'until': return 'until '+fmt_expr(L.cond);
+    case 'proc': return 'proc '+L.name+fmt_args(L.args,1);
     case 'goto': return `goto ${L.line}`;
     case 'gosub': return `gosub ${L.line}`;
     case 'return': return `return`;
@@ -605,6 +693,11 @@ function fmt_stmt(L) {
     case 'input': return fmt_input(L);
     case 'cls': return 'cls';
     case 'mode': return 'mode '+fmt_expr(L.mode);
+    case 'color': return 'color '+fmt_expr(L.col);
+    case 'gcol': return 'gcol '+fmt_expr(L.pxop)+', '+fmt_expr(L.gcol);
+    case 'move': return 'move '+fmt_expr(L.x)+', '+fmt_expr(L.y);
+    case 'draw': return 'draw '+fmt_expr(L.x)+', '+fmt_expr(L.y);
+    case 'vdu': return 'vdu '+fmt_args(L.args,0);
     default: return 'UNKNOWN';
   }
 }
@@ -632,164 +725,189 @@ function fmt_expr(L) {
   case 'tab': { var s = 'TAB('+fmt_expr(L.x); if (L.y) s += ','+fmt_expr(L.y); return s+')'; }
   case 'err': return `[${L.msg} at ${L.at+1}]`;
   case '()': return '('+fmt_expr(L.right)+')';
-  case 'fn': return 'fn '+L.name.name+fmt_args(L.args);
+  case 'fn': return 'fn '+L.name+fmt_args(L.args,1);
   case 'neg': return '- '+fmt_expr(L.right);
   case 'not': return 'not '+fmt_expr(L.right);
-  case 'name': return L.name+L.typ;
+  case 'name': return L.name;
   case 'str': return '"'+L.str.replace(/"/g,'""')+'"';
   case 'num':
    if (L.fmt === '&') return '&'+L.val.toString(16);
    if (L.fmt === '%') return '%'+L.val.toString(2);
    return L.val.toString();
   default:
-   if (L.args) return L.$+fmt_args(L.args); // built-ins.
+   if (L.args) return L.$+fmt_args(L.args,1); // built-ins.
    return fmt_expr(L.left)+' '+L.$+' '+fmt_expr(L.right);
  }
 }
-function fmt_args(args) {
+function fmt_args(args,wrap) {
   var a, len=args.length, s='';
-  if (len > 0) { s += '(';
+  if (len > 0) {
+    if (wrap) s += '(';
     for (a=0;a<len;a++) {
       if (s.length>1) s += ',';
       s += fmt_expr(args[a]);
-    } s += ')';
+    }
+    if (wrap) s += ')';
   }
   return s;
 }
 
 // CodeGen.
 
-var opLet=1,opDim=2,opPrint=3,opIfN=4,opJmp=5,opGoToExp=6,opGoSubExp=7,opReturn=8,opInput=9,opCls=10;
-var opNeg=11,opNot=12,opVar=13,opNum=14,opStr=15,opFn=16,opTab=17,opTabXY=18;
-var opAdd=20,opSub=21,opMul=22,opDiv=23,opIDiv=24,opMod=25,opPow=26,opAnd=27,opOr=28,opEor=29;
-var opEq=30,opNe=31,opGt=32,opGe=33,opLt=34,opLe=35;
+var opLet=1|0,opDim=2|0,opPrint=3|0,opIfN=4|0,opJmp=5|0,opGoToExp=6|0,opGoSubExp=7|0,opReturn=8|0,opInput=9|0,opNext=10|0;
+var opNeg=11|0,opNot=12|0,opVar=13|0,opNum=14|0,opStr=15|0,opFn=16|0,opTab=17|0,opTabXY=18|0,opFor=19|0;
+var opAdd=20|0,opSub=21|0,opMul=22|0,opDiv=23|0,opIDiv=24|0,opMod=25|0,opPow=26|0,opAnd=27|0,opOr=28|0,opEor=29|0;
+var opEq=30|0,opNe=31|0,opGt=32|0,opGe=33|0,opLt=34|0,opLe=35|0,opRepeat=36|0,opUntil=37|0;
+var opInKey=38|0;
+var opMode=50|0,opCls=51|0,opColor=52|0,opGCol=53|0,opMove=54|0,opDraw=55|0,opVdu=56|0; // BBC
 var opCodes={
  '+':opAdd,'-':opSub,'*':opMul,'/':opDiv,'DIV':opIDiv,'MOD':opMod,'^':opPow,
- 'AND':opAnd,'OR':opOr,'EOR':opEor,'=':opEq,'<>':opNe,'<':opLt,'<=':opLe,'>':opGt,'>=':opGe
+ 'AND':opAnd,'OR':opOr,'EOR':opEor,'=':opEq,'<>':opNe,'<':opLt,'<=':opLe,'>':opGt,'>=':opGe,
+ 'INKEY':opInKey
 };
 function new_gctx() {
-  return {ops:[],err:[],line:0,nvar:0,varmap:new Map(),vars:[],out:[]}
+  return {ops:[],sol:[],sos:[],err:[],line:0|0,nvar:0|0,varmap:new Map(),vars:[],out:[]}
 }
 function gen_code(code, G) {
- G.ops=[]; G.err=[]; // new outputs.
+ G.ops=[""]; G.ops.length=0; G.sol=[]; G.sos=[]; G.err=[]; // new outputs.
  for (var L of code) {
-  G.line = L.no;
+  G.line = L.no|0;
+  G.sol.push(G.line,G.ops.length); // start of line.
   gen_stmts(G,L.stmts);
   if (L.err) gen_err(G,L.err);
  }
 }
-function gen_err(g,err) {
+function gen_err(G,err) {
  var s = err.msg;
- if (g.line>=0) g.err.push(s+' at line '+g.line); else g.err.push(s);
+ if (G.line>=0) G.err.push(s+' at line '+G.line); else G.err.push(s);
 }
-function gen_bad(g) {
-  if (!g.err.length) g.err.push("Bad code"); // fallback.
+function gen_bad(G) {
+  if (!G.err.length) G.err.push("Bad code"); // fallback.
 }
-function gen_var(g,name,typ) {
- if (typ) name += typ;
- var n,v=g.varmap; if (v.has(name)) return v.get(name);
- n=g.nvar++; v.set(name,n); return n;
+function gen_var(G,name) {
+ if (typeof name !== 'string') throw 1;
+ var vn,v=G.varmap; if (v.has(name)) return v.get(name)|0;
+ vn=G.nvar++; v.set(name,vn); return vn|0;
 }
-function gen_stmts(g,stmts) {
+function gen_stmts(G,stmts) {
+ var sn=0|0;
  for (var S of stmts) {
-   gen_stmt(g,S);
-   if (S.err) gen_err(g,S.err);
+   G.sos.push(sn++,G.ops.length); // start of stmt.
+   gen_stmt(G,S);
+   if (S.err) gen_err(G,S.err);
  }
  return s;
 }
-function gen_stmt(g,L) {
+function gen_stmt(G,L) {
  switch (L.$) {
    case 'rem': return
    case 'let': {
-    if (!(L.name && L.exp)) return gen_bad(g);
-    var n = gen_var(g,L.name.name,L.name.type);
-    push_expr(g,L.exp); g.ops.push(opLet,n); return;
+    if (!(L.name && L.exp)) return gen_bad(G);
+    var vn = gen_var(G,L.name);
+    push_expr(G,L.exp); G.ops.push(opLet,vn); return;
    }
-   case 'dim': { var dims=L.dims,i,dim,n,args;
-    for (i=0;i<dims;i++) { dim=dims[i];
-     args=dim.args; for (j=0;j<args.length;j++) push_expr(g,args[j]);
-     n = gen_var(g,dim.name.name,dim.name.type);
-     g.ops.push(opDim,n,args.length);
+   case 'dim': { var dims=L.dims,i,dim,vn;
+    for (i=0;i<dims;i++) {
+     dim=dims[i]; push_args(G,dim.args);
+     vn = gen_var(G,dim.name.type);
+     G.ops.push(opDim,vn,dim.args.length);
     }
     return;
    }
    case 'if': { var j_ov,j_ex;
-    if (!(L.cond)) return gen_bad(g);
-    push_expr(g,L.cond); g.ops.push(opIfN,0); j_ov=g.ops.length-1;
-    gen_stmts(g,L.then_s);
+    if (!(L.cond)) return gen_bad(G);
+    push_expr(G,L.cond); G.ops.push(opIfN,0); j_ov=G.ops.length-1;
+    gen_stmts(G,L.then_s);
     if (L.else_s.length) {
-     g.ops[j_ov] = g.ops.length; // patch jmp-over.
-     g.ops.push(opJmp,0); j_ex=g.ops.length-1;
-     gen_stmts(g,L.else_s);
-     g.ops[j_ex] = g.ops.length; // patch jmp-exit.
+     G.ops[j_ov] = G.ops.length; // patch jmp-over.
+     G.ops.push(opJmp,0); j_ex=G.ops.length-1;
+     gen_stmts(G,L.else_s);
+     G.ops[j_ex] = G.ops.length; // patch jmp-exit.
     } else {
-     g.ops[j_ov] = g.ops.length; // patch jmp-over.
+     G.ops[j_ov] = G.ops.length; // patch jmp-over.
     }
     return;
    }
-   case 'proc': return gen_bad(g); // TODO.
+   case 'for': {
+    if (!(L.name && L.from && L.to)) return gen_bad(G);
+    push_expr(G,L.from); push_expr(G,L.to); G.ops.push(opFor,gen_var(G,L.name));
+    return;
+   }
+   case 'next': G.ops.push(opNext); return;
+   case 'repeat': G.ops.push(opRepeat); return;
+   case 'until': push_expr(G,L.cond); G.ops.push(opUntil); return;
+   case 'proc': return gen_bad(G); // TODO.
    case 'goto': {
-    if (L.exp) { push_expr(g,L.exp); g.ops.push(opGoToExp); return; }
-    g.ops.push(opNum,g,L.line); g.ops.push(opGoToExp); return; // use dynamic for now.
+    if (L.exp) { push_expr(G,L.exp); G.ops.push(opGoToExp); return; }
+    G.ops.push(opNum,L.line); G.ops.push(opGoToExp); return; // use dynamic for now.
    }
    case 'gosub': {
-    if (L.exp) { push_expr(g,L.exp); g.ops.push(opGoSubExp); return; }
-    g.ops.push(opNum,g,L.line); g.ops.push(opGoSubExp); return; // use dynamic for now.
+    if (L.exp) { push_expr(G,L.exp); G.ops.push(opGoSubExp); return; }
+    G.ops.push(opNum,L.line); G.ops.push(opGoSubExp); return; // use dynamic for now.
    }
-   case 'return': g.ops.push(opReturn); return;
-   case 'print': gen_print(g,L); return;
-   case 'input': gen_input(g,L); return;
-   case 'cls': g.ops.push(opCls); return;
-   case 'mode': return gen_bad(g); // TODO.
-   default: return 'UNKNOWN';
+   case 'return': G.ops.push(opReturn); return;
+   case 'print': gen_print(G,L); return;
+   case 'input': gen_input(G,L); return;
+   case 'cls': G.ops.push(opCls); return;
+   case 'mode': push_expr(G,L.mode); G.ops.push(opMode); return;
+   case 'color': push_expr(G,L.col); G.ops.push(opColor); return;
+   case 'gcol': push_expr(G,L.pxop); push_expr(G,L.gcol); G.ops.push(opGCol); return;
+   case 'move': push_expr(G,L.x); push_expr(G,L.y); G.ops.push(opMove); return;
+   case 'draw': push_expr(G,L.x); push_expr(G,L.y); G.ops.push(opDraw); return;
+   case 'vdu': push_args(G,L.args); G.ops.push(opVdu,L.args.length); return;
+   default: gen_err(G,{msg:"Unknown statement: "+L.$,at:L.at,text:''});
  }
 }
-function gen_print(g,L) {
+function gen_print(G,L) {
  var i,vals=L.vals,sems=[];
  for (i=vals.length-2;i>=0;i-=2) { // reversed.
-  sems.push(vals[i]);
-  push_expr(g,vals[i+1]);
+  sems.push(vals[i]|0);
+  push_expr(G,vals[i+1]);
  }
- g.ops.push(opPrint, sems.length, ...sems, L.sem);
+ G.ops.push(opPrint, sems.length, ...sems, L.sem|0);
 }
-function gen_input(g,L) {
- var i,n,v,vars=L.vars,vns=[];
+function gen_input(G,L) {
+ var i,v,vars=L.vars,vns=[];
  for (i=0;i<vars.length;i++) { v=vars[i];
-  vns.push(gen_var(g,v.name,v.typ));
+  vns.push(gen_var(G,v.name));
  }
- g.ops.push(opInput, L.com, vars.length, ...vns);
+ G.ops.push(opInput, L.com|0, vars.length, ...vns);
 }
-function push_expr(g,L) {
- if (L===undefined) return gen_bad(g);
+function push_args(G,args) {
+  for (var i=0;i<args.length;i++) push_expr(G,args[i]);
+}
+function push_expr(G,L) {
+ if (L===undefined) return gen_bad(G);
  switch (L.$) {
   case 'tab': {
-   push_expr(g,L.x);
-   if (L.y) { push_expr(g,L.y); g.ops.push(opTabXY); return }
-   g.ops.push(opTab); return
+   push_expr(G,L.x);
+   if (L.y) { push_expr(G,L.y); G.ops.push(opTabXY); return }
+   G.ops.push(opTab); return
   }
-  case 'err': gen_err(g,L); return
-  case '()': push_expr(g,L.right); return
+  case 'err': gen_err(G,L); return
+  case '()': push_expr(G,L.right); return
   case 'fn': {
-   for (var i=0;i<L.args;i++) push_expr(g,L.args[i]);
-   var n = gen_var(g,'fn:',L.name.name);
-   g.ops.push(opFn,n); return
+   for (var i=0;i<L.args;i++) push_expr(G,L.args[i]);
+   var n = gen_var(G,'fn:',L.name);
+   G.ops.push(opFn,n); return
   }
-  case 'neg': push_expr(g,L.right); g.ops.push(opNeg); return
-  case 'not': push_expr(g,L.right); g.ops.push(opNot); return
+  case 'neg': push_expr(G,L.right); G.ops.push(opNeg); return
+  case 'not': push_expr(G,L.right); G.ops.push(opNot); return
   case 'name': {
-   var n = gen_var(g,L.name,L.typ);
-   g.ops.push(opVar,n); return
+   var n = gen_var(G,L.name);
+   G.ops.push(opVar,n); return
   }
-  case 'num': g.ops.push(opNum,L.val); return
-  case 'str': g.ops.push(opStr,L.str); return
+  case 'num': G.ops.push(opNum,L.val); if (typeof L.val !== 'number') throw 1; return
+  case 'str': G.ops.push(opStr,L.str); return
   default: {
-   var op=opCodes[L.$]; if (!op) {
-    g.err.push("Missing opcode for "+L.$);
-   }
-   if (L.args) {
-    for (var i=0;i<L.args;i++) push_expr(g,L.args[i]); g.ops.push(op); return
+   var op=opCodes[L.$]|0; if (!op) {
+    G.err.push("Missing opcode for "+L.$);
    } else {
-    push_expr(g,L.left); push_expr(g,L.right); g.ops.push(op); return
+    if (L.args) {
+      for (var i=0;i<L.args;i++) push_expr(G,L.args[i]); G.ops.push(op); return
+    } else {
+      push_expr(G,L.left); push_expr(G,L.right); G.ops.push(op); return
+    }
    }
   }
  }
@@ -862,18 +980,18 @@ function compile_text(text, G) {
  for (i=0;i<lines.length;i++) {
    ln=lines[i]; if (ln) code.push(m_line(ln));
  }
+ console.log(fmt_code(code).join('\n'));
  gen_code(code, G);
  console.log(JSON.stringify(G,null,2));
- //fmt_code(code);
  return G;
 }
 
 function exec_line(line, G) {
- var code = [m_line(line)];
- gen_code(code, G); // -> ops,err.
+ var code = [m_line(line)]; G.out=[];
+ gen_code(code, G); // -> ops,err updates nvar,varmap
  console.log(JSON.stringify(G,null,2));
  if (G.err.length) return G.err.join('\n');
- eval_code(G.ops, G); // -> out.
+ eval_code(G.ops, G); // -> vars,out
  return G.out.join('');
 }
 
@@ -952,5 +1070,5 @@ for (var i=0;i<sboxes.length;i++) new_sbox(sboxes[i]);
 D.addEventListener('click', click, false);
 inp.addEventListener('keydown', keydown, false);
 
-}try{JBrt()}catch(e){console.log(e);Show('JBerr')}
+}JBrt();//try{JBrt()}catch(e){console.log(e);Show('JBerr')}
 })(document);
