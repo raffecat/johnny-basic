@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="About Johnny BASIC. Why is this even a thing?!">
+<meta name="author" content="Andrew Towers">
+<meta name="copyright" content="© Andrew Towers 2023. MIT License.">
+<meta name="repository" content="https://github.com/raffecat/johnny-basic">
+<title>Johnny BASIC • About</title>
+<style>
+html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font:10px Georgia,'Times New Roman',Times,serif}
+body{padding:1em}.hid{display:none}
+.co{margin:5em 1em;max-width:86em;margin-left:auto;margin-right:auto;padding-bottom:1em}
+.hd{display:flex}.jc{margin-left:20px}.hl{text-align:right;font-size:11px;padding-right:21px;}
+.sec{margin:2em 0;font-size:18px;max-width:82em}
+p,ul{margin:1em 0;line-height:1.5}ul{max-width:80%}
+a{color:#303335}a:visited{color:#303335}a:active{color:#303335}
+.back{display:inline-block;margin-left:13px;padding:0 12px 0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
+.back:before{display:block;content:'';position:absolute;top:0;left:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:13px solid #fdb852;border-left:13px solid transparent}
+h3{margin:3em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
+@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}.jb{stroke:#fff}a{color:#fff}a:visited{color:#fff}a:active{color:#fff}}
+</style>
+</head>
+<body>
+<div class="co">
+<!-- header -->
+<div class="hd">
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="stroke:#f00;stroke-width:1;stroke-linejoin:bevel;fill:none"></svg>
+<div class="jc">
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" alt="Johnny BASIC" viewBox="0 0 335 50" width="600">
+<path class="jb" d="M10 35v5h20v-30m-5 0h10m11 0h10l5 10v10l-5 10h-10l-5-10v-10zm24 0v30m0-15h20m0-15v30m10 0v-30l20 30v-30m10 30v-30l20 30v-30m7.5 0  l10 15l10-15m-10 15v15  m30-30h15l5 5v5l-5 5l5 5v5l-5 5h-15zm5 5h7.5l2.5 2.5l-5 5h-5zm0 12.5h5l5 5l-2.5 2.5h-7.5zm25 12.5v-25l5-5h10l5 5v25h-5v-10h-10v10zm5-15v-7.5l2.5-2.5h5l2.5 2.5v7.5zm25 5v5l5 5h10l5-5v-5l-15-12.5l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5v5l15 12.5l-2.5 2.5h-5l-2.5-2.5v-2.5zm30 10v-30h5v30zm15-5l5 5h10l5-5v-5h-5v2.5l-2.5 2.5h-5l-2.5-2.5v-15l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5z" stroke="#333" stroke-width="2" stroke-linejoin="bevel" fill="none"></path>
+</svg>
+<div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia</div>
+</div>
+</div>
+<!-- content -->
+<div class="sec">
+<p><a href="/" class="back">Back to BASIC</a></p>
+<h3>What is Johnny BASIC?</h3>
+<p>Johnny BASIC is a programming environment and interactive programming guide for
+<em>learning about how computers work.</em></p>
+<h3>But why?!</h3>
+<p>In 2006 David Brin wrote an article called <a href="https://www.salon.com/2006/09/14/basic_2/">
+Why Johnny can't code</a> about their being no easy way to get kids hooked on programming.</p>
+<p>He lamented [although this is my interpretation] that our programming tools are
+too hard to install and get working, and once they are working, the distance between
+a new project and seeing something working is <em>massive</em>&mdash;for a new programmer,
+it takes days just learning about picky syntax rules. The languages themselves take
+a lot of code to really do anything. And you also need to install libraries
+to do anything fun.</p>
+<p>He recalls BASIC on the home computers of his youth, where all you had to do was turn
+on the power, and you could immediately start typing in statements to execute, or a new
+program listing to run.</p>
+<p>The closest modern analogue is Python, which typically needs to be downloaded and installed.
+But it doesn't come with any exciting built-in capabilities, like drawing graphics and making
+sounds! Where's the good stuff? New programmers also get tripped up by the indentation rules.
+And "how to run my program." (Often, the answer is "use the shell" - the what now?!)</p>
+<h3>Johnny BASIC</h3>
+<p>Which brings us to this project. David Brin actually created quite a stir at the time,
+with even Microsoft coming out with <a href="https://smallbasic-publicwebsite.azurewebsites.net/">
+Small Basic</a> in answer to the article.</p>
+<p>However, I think many respondents missed David's more salient points:</p>
+<ul>
+<li>"An easy way for kids to get hooked on programming" (learnable, sticky)</li>
+<li>"Turn-key usable by any junior high school student" (easy to access)</li>
+<li>"You could follow along on paper for a few iterations, verifying that the dot on the
+screen was moving by the sheer power of mathematics, alone" (understanding how computers work)</li>
+</ul>
+<p><a href="http://worrydream.com/">Bret Victor</a> touched on some of these points
+in his fantastic <a href="http://worrydream.com/#!/LearnableProgramming">
+Learnable Programming</a> article, with these relevant points:</p>
+<ul>
+<li>Programming is a way of thinking (it's not about learning syntax)</li>
+<li>People understand what they can see (we need to see the steps, and the state)</li>
+<li>Learning needs to be interactive (a bucket of parts to play with)</li>
+</ul>
+<p>The article points out that the answer to the question "how can we get people to understand
+programming?" may actually be "make programming more learnable" (we're focusing on the wrong
+side of the problem.) I highly recommended reading this article.</p>
+<h3>Project Goals</h3>
+<p>There is a tension between creating a <em>learnable programming language</em> and teaching
+people <em>how computers work</em>.</p>
+<p>Computers work with numbers. Everything is made up of numbers in the computer's memory.
+Pictures are made of up numbers in memory. Sounds are made up of numbers in memory. Text is
+made up of numbers in memory! Numbers, as Bret Victor points out, are not a great user
+interface. They don't explain themselves. They need to be explained. But they're close to
+how computers work.</p>
+<p>This project is about teaching people how computers work&mdash;and how computers
+follow simple instructions, but can do so very very quickly. The old 80s BASICS were simple and
+close to the machine by necessity, because the computers were slow and didn't have much memory.
+This makes them good for learning about how computers work.</p>
+<p>Some versions of BASIC&mdash;such as Commodore 64 BASIC&mdash;made heavy use of <kbd>PEEK</kbd>
+and <kbd>POKE</kbd> instructions to access hardware registers directly! While I don't think
+this is a great way to program, and it leads to very obscure and unreadable programs,
+it <em>does</em> bring the programmer very close to the hardware.</p>
+<p>I feel I can leave teaching people to think about problems like a programmer (decomposition,
+abstraction) to others. I don't think there's a great problem here in the modern world&mdash;
+some places teach programmers to think this way.</p>
+<p>I do think there's a problem where programmers have no idea how the machine actually
+works, or what their instructions cost to execute, or why their battery keeps going flat,
+or even how the computer goes about executing their code at all! And that's not a good place to be.</p>
+</div>
+</div>
+</body>
+</html>
