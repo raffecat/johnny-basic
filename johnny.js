@@ -869,7 +869,7 @@ function gen_print(G,L) {
 function gen_input(G,L) {
  var i,v,vars=L.vars,vns=[];
  for (i=0;i<vars.length;i++) { v=vars[i];
-  vns.push(gen_var(G,v.name));
+  vns.push(gen_var(G,v));
  }
  G.ops.push(opInput, L.com|0, vars.length, ...vns);
 }
