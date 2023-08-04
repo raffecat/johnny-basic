@@ -12,7 +12,7 @@
 html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font:10px Georgia,'Times New Roman',Times,serif}
 body{padding:1em}.hid{display:none}
 .co{margin:5em 1em;max-width:86em;margin-left:auto;margin-right:auto}
-.hd{display:flex}.jc{margin-left:20px}.jb{margin-top:18px}.hl{font-size:11px}
+.hd{display:flex}.jc{margin-left:20px}.hl{text-align:right;font-size:11px;padding-right:21px;}
 .sec{margin:3em 0;font-size:18px}
 p{margin:1em 0;line-height:1.5}p.near{margin:0.4em 0}
 .tip{margin:1.3em 0;border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;line-height:1.4}
@@ -25,7 +25,7 @@ p{margin:1em 0;line-height:1.5}p.near{margin:0.4em 0}
 h3{margin:4em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
 td{font:18px Georgia,'Times New Roman',Times,serif}
 code{font:bold 18px 'Courier New',Courier,monospace;color:coral}i{font-size:0.94em;font-weight:300;color:gold}
-@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}}
+@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}.jb{stroke:#fff}}
 </style>
 <script>function JB_fix(){setTimeout(function(s,p,d){(d=document).getElementById('JBerr').style.display='block';s=d.getElementsByTagName('script')[1];p=s.parentElement;p.removeChild(s);s=d.createElement('script');s.src='johnny.js';s.onerror=JB_fix;p.appendChild(s)},2000)}</script>
 <script src="johnny.js" defer onerror="JB_fix()"></script>
@@ -38,10 +38,12 @@ code{font:bold 18px 'Courier New',Courier,monospace;color:coral}i{font-size:0.94
 <div class="co">
 <!-- header -->
 <div class="hd">
-<svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="fill:rgb(255,0,0);stroke-width:0"></svg>
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="stroke:#f00;stroke-width:1;stroke-linejoin:bevel;fill:none"></svg>
 <div class="jc">
-<svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" class="jb" alt="Johnny BASIC" width="600" height="80"><rect width="600" height="80" style="fill:rgb(0,0,255);stroke-width:0"></svg>
-<div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia.</div>
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" alt="Johnny BASIC" viewBox="0 0 335 50" width="600">
+<path class="jb" d="M10 35v5h20v-30m-5 0h10m11 0h10l5 10v10l-5 10h-10l-5-10v-10zm24 0v30m0-15h20m0-15v30m10 0v-30l20 30v-30m10 30v-30l20 30v-30m7.5 0  l10 15l10-15m-10 15v15  m30-30h15l5 5v5l-5 5l5 5v5l-5 5h-15zm5 5h7.5l2.5 2.5l-5 5h-5zm0 12.5h5l5 5l-2.5 2.5h-7.5zm25 12.5v-25l5-5h10l5 5v25h-5v-10h-10v10zm5-15v-7.5l2.5-2.5h5l2.5 2.5v7.5zm25 5v5l5 5h10l5-5v-5l-15-12.5l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5v5l15 12.5l-2.5 2.5h-5l-2.5-2.5v-2.5zm30 10v-30h5v30zm15-5l5 5h10l5-5v-5h-5v2.5l-2.5 2.5h-5l-2.5-2.5v-15l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5z" stroke="#333" stroke-width="2" stroke-linejoin="bevel" fill="none"></path>
+</svg>
+<div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia</div>
 </div>
 </div>
 <!-- content -->
