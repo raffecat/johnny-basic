@@ -939,19 +939,19 @@ function eval_code(ops, G) {
    i=ops[p++]; n=stack[--top]; if (!n) p=i; break; // jump.
   }
   case opJmp: p=ops[p++]; break;
-  case opGoToExp: break;
-  case opGoSubExp: break;
-  case opReturn: break;
-  case opInput: break;
-  case opCls: break;
+  // case opGoToExp: break;
+  // case opGoSubExp: break;
+  // case opReturn: break;
+  // case opInput: break;
+  // case opCls: break;
   case opNeg: stack[top] = - stack[top]; break;
   case opNot: stack[top] = ~ stack[top]; break;
   case opVar: n=G.vars[ops[p++]]; stack[top++]=n; break;
   case opNum: stack[top++] = ops[p++]; break;
   case opStr: stack[top++] = ops[p++]; break;
-  case opFn: break;
-  case opTab: break;
-  case opTabXY: break;
+  // case opFn: break;
+  // case opTab: break;
+  // case opTabXY: break;
   case opAdd: --top; stack[top-1] += stack[top]; break;
   case opSub: --top; stack[top-1] -= stack[top]; break;
   case opMul: --top; stack[top-1] *= stack[top]; break;
@@ -968,7 +968,7 @@ function eval_code(ops, G) {
   case opGe: --top; stack[top-1] = stack[top-1] >= stack[top] ? -1 : 0; break;
   case opLt: --top; stack[top-1] = stack[top-1] < stack[top] ? -1 : 0; break;
   case opLe: --top; stack[top-1] = stack[top-1] <= stack[top] ? -1 : 0; break;
-  default: throw new Error('bad op '+ops[--p]);
+  default: G.out.push('Not implemented'); return; // throw new Error('bad op '+ops[--p]);
   }
  }
 }
