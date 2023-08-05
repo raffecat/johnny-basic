@@ -4,24 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Johnny BASIC Interactive Programming Guide.">
-<meta name="author" content="Andrew Towers">
 <meta name="copyright" content="© Andrew Towers 2023. MIT License.">
 <meta name="repository" content="https://github.com/raffecat/johnny-basic">
 <title>Johnny BASIC • Guide</title>
 <style>
 html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
-body{padding:1em}.hid{display:none}
+body{padding:1em}#thm{position:absolute;right:12px;top:10px;display:none}.ic{fill:#303335;stroke:#303335}.hid{display:none}
 .co{max-width:86em;margin:5em 1em;margin-left:auto;margin-right:auto}
 .hd{display:flex}.jc{margin-left:20px}.hl{text-align:right;font-size:11px;padding-right:21px;}
+.ico{display:inline-block;width:18px;height:18px;position:relative}
 .sec{margin:2em 0 6em;font-size:18px}.gap{margin-top:3em}
 h2{margin:2.5em 0 1em;font-family:'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
-p{margin:1em 0;line-height:1.5}.norp{padding-right:0}
-em{font-family:monospace;font-weight:600;font-style:italic;padding:0 0.28em 0 0.12em;font-size:16px}
+p{margin:1em 0;line-height:1.5}em.np{padding-right:0}
+em{font-style:italic;padding:0 0.23em 0 0.12em}
 code{margin:1em 0;display:block;font:bold 18px 'Courier New',Courier,monospace;border-left:9px solid rgb(232, 66, 66);padding-left:1em}
-.ic{display:inline-block;width:18px;height:18px;position:relative;top:0.16em}
+kbd{background:#dfdfdf;padding:0 4px}kbd.w{margin-left:1em;margin-right:1em;padding:2px}kbd.p{margin-left:0.44em;padding-bottom:4px}
 .tip{margin:1.3em 0;border-left:5px solid rgb(91, 89, 225);padding-left:1em;font-size:0.96em;line-height:1.6}
 .warn{margin:5em 0;border-left:5px solid #f44}
-ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right:1em}
+ul.no{list-style-type:none;margin-left:-1em}
 .btn{margin-top:0.8em;display:inline-block;border:1px solid #727272;padding:0.3em 0.8em;border-radius:3px;background:#eee;color:#222;font:14px Arial;text-decoration:none}button:active{background:#ddd}
 .sbox{margin:1.6em 0;border:1px solid #727272;height:100px}
 .back{display:inline-block;margin-left:13px;padding:0 12px 0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
@@ -29,19 +29,30 @@ ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right
 .back.nobr{padding:0 12px}.back.nobr:before{display:none}
 .next{margin-top:3em;display:inline-block;padding:0 8px 0 12px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
 .next:after{display:block;content:'';position:absolute;top:0;right:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:13px solid #fdb852;border-right:13px solid transparent}
-@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}.jb{stroke:#fff}}
+@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}.ic{fill:#fff;stroke:#fff}kbd{background:#4a4a4a}}
+.light{background:#fdfaf9;color:#303335}.light .ic{fill:#303335;stroke:#303335}.light kbd{background:#dfdfdf}
+.dark{background:#303335;color:#fff}.dark .ic{fill:#fff;stroke:#fff}.dark kbd{background:#4a4a4a}
 </style>
-<script>function JB_fix(){setTimeout(function(s,p,d){(d=document).getElementById('JBerr').style.display='block';s=d.getElementsByTagName('script')[1];p=s.parentElement;p.removeChild(s);s=d.createElement('script');s.src='johnny.js';s.onerror=JB_fix;p.appendChild(s)},2000)}</script>
 <script src="johnny.js" defer onerror="JB_fix()"></script>
+<script>function JB_fix(){setTimeout(function(s,p,d){(d=document).getElementById('JBerr').style.display='block';s=d.getElementsByTagName('script')[1];p=s.parentElement;p.removeChild(s);s=d.createElement('script');s.onerror=JB_fix;s.src='johnny.js';p.appendChild(s)},2000)}</script>
 </head>
 <body>
+<!-- theme -->
+<div id="thm"><a href="#" role="button" title="Toggle Dark Theme"><svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 32 32" class="ico"><g class="ic" stroke-width="2"><path style="stroke:none" d="M28.8 16.27C28.8 12.16 32.1 8.826 36.2 8.77L36.2 23.77C32.1 23.72 28.8 20.38 28.8 16.27Z"/><ellipse style="fill:none" cx="36" cy="16.25" rx="7.5" ry="7.5"/><path style="fill:none" d="M36 1v4M36 28v4M48 16h4M20 16h4M28 9l-3.5-3.5M44 9l3.5-3.5M28 24l-3.5 3.5M44 24l3.5 3.5"/></g></svg></a></div>
+<script>
+(function(D,W){var e,d,m,mm=W.matchMedia||W.webkitMatchMedia||W.msMatchMedia||W.oMatchMedia
+d=W.localStorage?W.localStorage.getItem('dark'):null;d=d!=null?d=='true':(m=mm.call(W,'(prefers-color-scheme:dark)'),d=m?m.matches:0)
+D.body.className=d?'dark':'light';(e=D.getElementById('thm')).style.display='block'
+e.onclick=function(){var s=(d=!d)?'dark':'light';D.body.className=s;D.getElementsByTagName('html')[0].className=s;W.localStorage&&W.localStorage.setItem('dark',''+d);return false}
+})(document,window)
+</script>
 <div class="co">
 <!-- header -->
 <div class="hd">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="stroke:#f00;stroke-width:1;stroke-linejoin:bevel;fill:none"></svg>
 <div class="jc">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" alt="Johnny BASIC" viewBox="0 0 335 50" width="600">
-<path class="jb" d="M10 35v5h20v-30m-5 0h10m11 0h10l5 10v10l-5 10h-10l-5-10v-10zm24 0v30m0-15h20m0-15v30m10 0v-30l20 30v-30m10 30v-30l20 30v-30m7.5 0l10 15l10-15m-10 15v15m30-30h15l5 5v5l-5 5l5 5v5l-5 5h-15zm5 5h7.5l2.5 2.5l-5 5h-5zm0 12.5h5l5 5l-2.5 2.5h-7.5zm25 12.5v-25l5-5h10l5 5v25h-5v-10h-10v10zm5-15v-7.5l2.5-2.5h5l2.5 2.5v7.5zm25 5v5l5 5h10l5-5v-5l-15-12.5l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5v5l15 12.5l-2.5 2.5h-5l-2.5-2.5v-2.5zm30 10v-30h5v30zm15-5l5 5h10l5-5v-5h-5v2.5l-2.5 2.5h-5l-2.5-2.5v-15l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5z" stroke="#333" stroke-width="2" stroke-linejoin="bevel" fill="none"></path>
+<g class="ic"><path style="fill:none" d="M10 35v5h20v-30m-5 0h10m11 0h10l5 10v10l-5 10h-10l-5-10v-10zm24 0v30m0-15h20m0-15v30m10 0v-30l20 30v-30m10 30v-30l20 30v-30m7.5 0l10 15l10-15m-10 15v15m30-30h15l5 5v5l-5 5l5 5v5l-5 5h-15zm5 5h7.5l2.5 2.5l-5 5h-5zm0 12.5h5l5 5l-2.5 2.5h-7.5zm25 12.5v-25l5-5h10l5 5v25h-5v-10h-10v10zm5-15v-7.5l2.5-2.5h5l2.5 2.5v7.5zm25 5v5l5 5h10l5-5v-5l-15-12.5l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5v5l15 12.5l-2.5 2.5h-5l-2.5-2.5v-2.5zm30 10v-30h5v30zm15-5l5 5h10l5-5v-5h-5v2.5l-2.5 2.5h-5l-2.5-2.5v-15l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5z" stroke-width="2" stroke-linejoin="bevel"/></g>
 </svg>
 <div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia</div>
 </div>
@@ -56,27 +67,27 @@ ul.no{list-style-type:none;margin-left:-1em}kbd.w{padding-left:1em;padding-right
 <p>If you've never programmed a computer before, this guide will get you started.<br>
 We'll start with the basics and gently introduce the topic of writing programs.</p>
 <p>Johnny BASIC is a safe "sandbox" environment, so don't worry! You can't break anything.<br>
-You can mess around with the examples as much as you like. It's quite safe, I promise.
-<!--If one of the examples stops working, you can always reset it with the little
-<svg xmlns="http://www.w3.org/2000/svg" aria-label="refresh button" role="img" viewBox="0 0 24 24" class="ic"><use href="#ic-rst" xlink:href="#ic-rst"></use></svg> button above each example.--></p>
+You can mess around with the examples as much as you like. It's quite safe, I promise.</p>
 <h2>2. Giving the Computer Instructions</h2>
 <p>Programming, in its simplest form, involves giving the computer a list of step-by-step instructions.</p>
 <p>Computers are very good at following instructions, as long as they're written in a language the
 computer understands. Here, we use a simple language called BASIC, which was created at Dartmouth College
 in 1964 for liberal arts students!</p>
 <p>It has a simple structure: each line begins with a <em>command word</em> that
-chooses the action to take.<br>Commands are typically followed by some <em class="norp">parameters</em>,
+chooses the action to take.<br>Commands are typically followed by some <em class="np">parameters</em>,
 which differ from one command to another.</p>
-<p class="gap">Let's try something! The following box is a <i>scratchpad</i> that allows commands to be entered
+<p class="gap">Let's try something! The following box is a <em>scratchpad</em> that allows commands to be entered
 for the computer to follow (or, execute!)</p>
 <p>Click or tap on the box below and try typing in the command:</p>
 <code>print "hello"</code>
 <div class="sbox"></div>
 <p>Press the <kbd>RETURN</kbd> key to execute the command. The computer will follow the instruction immediately.</p>
-<p class="tip"><b>Tip:</b> the punctuation is important; computers are picky about using quote marks "" and punctuation
-symbols in the right places&mdash;<i>but not the right places for the English language!</i> They must be in the right places
+<p class="tip"><b>Tip:</b> the punctuation is important; computers are picky about using quote marks <kbd>""</kbd> (next to the <kbd>RETURN</kbd> key <small>[USA]</small> or above <kbd>2</kbd> <small>[Europe]</small>) and punctuation
+symbols in the right places&mdash;<i>but not the right places for human languages!</i> They must be in the right places
 for the Programming Language, BASIC. In this example, the quotes surround the letters you wish to print out.</p>
-<p>Try entering a few more <kbd>print</kbd> commands to print out different messages.</p>
+<p>If the computer doesn't undestand your instruction, it will come back with a message
+like <kbd>Unrecognised statement</kbd> (i.e. the command word) or <kbd>Missing "</kbd>. It's trying to be helpful! These messages all mean the same thing: the computer didn't entirely
+understand the command (it's not very smart.) Usually the message provides a hint at the problem. Check that the command is spelled correctly and the quote symbols are paired up.</p>
 <p class="gap">The <kbd>print</kbd> command can also print out numbers:</p>
 <code>print 42</code>
 <div class="sbox"></div>
@@ -87,7 +98,7 @@ for the Programming Language, BASIC. In this example, the quotes surround the le
 <p>Try entering your own formulas&mdash;experiment!</p>
 <div class="tip"><b>Tip:</b> BASIC supports:<ul class="no"><li><kbd class="w">+</kbd> to add</li><li><kbd class="w">-</kbd> to subtract</li>
 <li><kbd class="w">*</kbd> to multiply</li><li><kbd class="w">/</kbd> to divide</li><li><kbd class="w">^</kbd> to raise to a power</li>
-<li><kbd class="w" style="padding-left:0.4em;position:relative;top:-2px;">()</kbd> for grouping</li></ul>
+<li><kbd class="w p">()</kbd> for grouping</li></ul>
 Note that <kbd>*</kbd> and <kbd>/</kbd> are used for multiplication and division,<br>because they're keys on the keyboard and easy to type in!</div>
 <p class="gap">You can combine all of the above, asking the computer to print a combination of things:</p>
 <code>print "My age is" 5*6 "and I am happy!"</code>
@@ -102,6 +113,7 @@ If you leave them out, the computer will try to make sense of the letters as a m
 <div class="sec hjs" id="S2">
 <p><a href="#S1" class="back">Previous Chapter</a> <a href="/" class="back nobr">Leave the Guide</a></p>
 <h2>3. Variables and Input</h2>
+<p></p>
 </div>
 </div>
 </body>

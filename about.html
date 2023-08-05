@@ -4,32 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="About Johnny BASIC. Why is this even a thing?!">
-<meta name="author" content="Andrew Towers">
 <meta name="copyright" content="© Andrew Towers 2023. MIT License.">
 <meta name="repository" content="https://github.com/raffecat/johnny-basic">
 <title>Johnny BASIC • About</title>
 <style>
-html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font:10px Georgia,'Times New Roman',Times,serif}
-body{padding:1em}.hid{display:none}
-.co{margin:5em 1em;max-width:86em;margin-left:auto;margin-right:auto;padding-bottom:1em}
+html,body{margin:0;padding:0;background:#fdfaf9;color:#303335;font-family:Georgia,'Times New Roman',Times,serif;font-size:10px}
+body{padding:1em}#thm{position:absolute;right:12px;top:10px;;display:none}.ic{fill:#303335;stroke:#303335}.hid{display:none}
+.co{max-width:86em;margin:5em 1em;margin-left:auto;margin-right:auto}
 .hd{display:flex}.jc{margin-left:20px}.hl{text-align:right;font-size:11px;padding-right:21px;}
+.ico{display:inline-block;width:18px;height:18px;position:relative}
 .sec{margin:2em 0;font-size:18px;max-width:82em}
 p,ul{margin:1em 0;line-height:1.5}ul{max-width:80%}
 a{color:#303335}a:visited{color:#303335}a:active{color:#303335}
 .back{display:inline-block;margin-left:13px;padding:0 12px 0 8px;background:#fdb852;color:#352d2d;line-height:26px;height:26px;text-decoration:none;position:relative}
 .back:before{display:block;content:'';position:absolute;top:0;left:-26px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:13px solid #fdb852;border-left:13px solid transparent}
 h3{margin:3em 0 1em;font:16pt 'Lucida Sans','Lucida Sans Regular','Lucida Grande','Lucida Sans Unicode',Geneva,Verdana,sans-serif}
-@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}.jb{stroke:#fff}a{color:#fff}a:visited{color:#fff}a:active{color:#fff}}
+@media(prefers-color-scheme:dark){html,body{background:#303335;color:#fff}.ic{fill:#fff;stroke:#fff}kbd{background:#4a4a4a}a{color:#fff}a:visited{color:#fff}a:active{color:#fff}}
+.light{background:#fdfaf9;color:#303335}.light .ic{fill:#303335;stroke:#303335}.light kbd{background:#dfdfdf}.light a{color:#303335}.light a:visited{color:#303335}.light a:active{color:#303335}
+.dark{background:#303335;color:#fff}.dark .ic{fill:#fff;stroke:#fff}.dark kbd{background:#4a4a4a}.dark a{color:#fff}.dark a:visited{color:#fff}.dark a:active{color:#fff}
 </style>
 </head>
 <body>
+<!-- theme -->
+<div id="thm"><a href="#" role="button" title="Toggle Dark Theme"><svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 32 32" class="ico"><g class="ic" stroke-width="2"><path style="stroke:none" d="M28.8 16.27C28.8 12.16 32.1 8.826 36.2 8.77L36.2 23.77C32.1 23.72 28.8 20.38 28.8 16.27Z"/><ellipse style="fill:none" cx="36" cy="16.25" rx="7.5" ry="7.5"/><path style="fill:none" d="M36 1v4M36 28v4M48 16h4M20 16h4M28 9l-3.5-3.5M44 9l3.5-3.5M28 24l-3.5 3.5M44 24l3.5 3.5"/></g></svg></a></div>
+<script>
+(function(D,W){var e,d,m,mm=W.matchMedia||W.webkitMatchMedia||W.msMatchMedia||W.oMatchMedia
+d=W.localStorage?W.localStorage.getItem('dark'):null;d=d!=null?d=='true':(m=mm.call(W,'(prefers-color-scheme:dark)'),d=m?m.matches:0)
+D.body.className=d?'dark':'light';(e=D.getElementById('thm')).style.display='block'
+e.onclick=function(){var s=(d=!d)?'dark':'light';D.body.className=s;D.getElementsByTagName('html')[0].className=s;W.localStorage&&W.localStorage.setItem('dark',''+d);return false}
+})(document,window)
+</script>
 <div class="co">
 <!-- header -->
 <div class="hd">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Mascot" role="img" class="lo" width="100" height="120"><rect width="100" height="120" style="stroke:#f00;stroke-width:1;stroke-linejoin:bevel;fill:none"></svg>
 <div class="jc">
 <svg xmlns="http://www.w3.org/2000/svg" aria-label="Johnny BASIC Logo" role="img" alt="Johnny BASIC" viewBox="0 0 335 50" width="600">
-<path class="jb" d="M10 35v5h20v-30m-5 0h10m11 0h10l5 10v10l-5 10h-10l-5-10v-10zm24 0v30m0-15h20m0-15v30m10 0v-30l20 30v-30m10 30v-30l20 30v-30m7.5 0  l10 15l10-15m-10 15v15  m30-30h15l5 5v5l-5 5l5 5v5l-5 5h-15zm5 5h7.5l2.5 2.5l-5 5h-5zm0 12.5h5l5 5l-2.5 2.5h-7.5zm25 12.5v-25l5-5h10l5 5v25h-5v-10h-10v10zm5-15v-7.5l2.5-2.5h5l2.5 2.5v7.5zm25 5v5l5 5h10l5-5v-5l-15-12.5l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5v5l15 12.5l-2.5 2.5h-5l-2.5-2.5v-2.5zm30 10v-30h5v30zm15-5l5 5h10l5-5v-5h-5v2.5l-2.5 2.5h-5l-2.5-2.5v-15l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5z" stroke="#333" stroke-width="2" stroke-linejoin="bevel" fill="none"></path>
+<g class="ic"><path style="fill:none" d="M10 35v5h20v-30m-5 0h10m11 0h10l5 10v10l-5 10h-10l-5-10v-10zm24 0v30m0-15h20m0-15v30m10 0v-30l20 30v-30m10 30v-30l20 30v-30m7.5 0l10 15l10-15m-10 15v15m30-30h15l5 5v5l-5 5l5 5v5l-5 5h-15zm5 5h7.5l2.5 2.5l-5 5h-5zm0 12.5h5l5 5l-2.5 2.5h-7.5zm25 12.5v-25l5-5h10l5 5v25h-5v-10h-10v10zm5-15v-7.5l2.5-2.5h5l2.5 2.5v7.5zm25 5v5l5 5h10l5-5v-5l-15-12.5l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5v5l15 12.5l-2.5 2.5h-5l-2.5-2.5v-2.5zm30 10v-30h5v30zm15-5l5 5h10l5-5v-5h-5v2.5l-2.5 2.5h-5l-2.5-2.5v-15l2.5-2.5h5l2.5 2.5v2.5h5v-5l-5-5h-10l-5 5z" stroke-width="2" stroke-linejoin="bevel"/></g>
 </svg>
 <div class="hl">Version 0.01. Created by Andrew Towers of the Dandenong Ranges, Australia</div>
 </div>
