@@ -20,12 +20,12 @@ var GOSUB=kw("GOSUB"),RETURN=kw("RETURN"),DATA=kw("DATA"),READ=kw("READ"),RESTOR
 var PRINT=kw("PRINT"),PROC=kw("PROC"),DIV=kw("DIV"),MOD=kw("MOD"),AND=kw("AND"),OR=kw("OR"),EOR=kw("EOR"),NOT=kw("NOT");
 var MODE=kw("MODE"),COLOUR=kw("COLOUR"),COLOR=kw("COLOR"),GCOL=kw("GCOL"); // BBC
 var MOVE=kw("MOVE"),DRAW=kw("DRAW"),PLOT=kw("PLOT"),VDU=kw("VDU"); // BBC
-var b_funs = [
-  'GET','INKEY','RND','TIME','DIM',
-  'FLOOR','CEIL','ABS','ATN','COS','EXP','INT','SGN','SIN','SQR','LOG','LN','TAN','PI',
-  'LEN','INSTR','ASC','VAL',
-  'GET$','INKEY$','LEFT$','MID$','RIGHT$','STRING$','CHR$','STR$','BIN$','HEX$','AT$','UPPER$','LOWER$'
-];
+var b_funs = {
+  'GET':0,'INKEY':0,'RND':1,'TIME':0,'DIM':2,
+  'FLOOR':1,'CEIL':1,'ABS':1,'ATN':1,'COS':1,'EXP':1,'INT':1,'SGN':1,'SIN':1,'SQR':1,'LOG':1,'LN':1,'TAN':1,
+  'LEN':1,'INSTR':0,'ASC':1,'VAL':1,
+  'GET$':0,'INKEY$':0,'LEFT$':2,'MID$':3,'RIGHT$':2,'STRING$':2,'CHR$':1,'STR$':1,'BIN$':1,'HEX$':1,'AT$':2,'UPPER$':1,'LOWER$':1
+};
 
 function log(c,p,msg) {
   console.log(`${msg} ${subs(c,p-4,p+5)}\n${'^'.padStart(msg.length+6)}`);
@@ -36,10 +36,12 @@ function isAlpha(c) { return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c 
 function subs(c,s,e) { return dec.decode(c.slice(s,e)); }
 function skip_ws(c,p) { while (c[p] === 32) ++p; return p; }
 
+var ev=[];
 function m_error(c,p,msg) {
   var at = skip_ws(c,p);
   while (p<c.length && c[p]!==58) ++p; // up to ":"
-  return { $:'err', at, msg, text:subs(c,at,p), aft:p };
+  ev.push(at, msg, subs(c,at,p));
+  return { $:'err', aft:p }
 }
 
 function m_stmts(c,p,req,stmts) {
@@ -60,7 +62,7 @@ function m_stmt(c,p,req) {
   var t, s, at=p;
   switch (c[p]) {
     case 63: { // "?" shorthand PRINT.
-      return m_print(c,p,at);
+      return m_print(c,p+1,at);
     }
     case 67: case 99: { // "C"
       t = is_kw(c,p,CLS,3);
@@ -145,8 +147,8 @@ function m_stmt(c,p,req) {
     }
   }
   s = m_let(c,p,at,1); if (s) return s;
-  if (!req) return null; // no match.
-  return m_error(c,at,'Unrecognised Statement after '+req+' (Statement expected)')
+  if (req) return m_error(c,at,'Unrecognised Statement after '+req+' (Statement expected)')
+  return null; // no match.
 }
 
 function m_rem(c,p,at) {
@@ -165,25 +167,28 @@ function m_color(c,p,at) {
   return { $:'color', at, col, aft:p };
 }
 function m_gcol(c,p,at) {
-  var err=null; p = skip_ws(c,p);
-  var pxop = m_expr(c,p,0,0); p = skip_ws(p,pxop.aft);
-  if (c[p] === 44) ++p; else err = m_error(c,p,"Expecting , in GCOL")
-  var gcol = m_expr(c,p,0,0); p = skip_ws(p,gcol.aft);
-  return { $:'gcol', at, pxop, gcol, err, aft:p };
+  p = skip_ws(c,p);
+  var gcol=null, pxop=m_expr(c,p,0,0); p = skip_ws(p,pxop.aft);
+  if (c[p] === 44) {
+    gcol = m_expr(c,p+1,0,0); p=skip_ws(p,gcol.aft);
+  } else return m_error(c,p,"Expecting , in GCOL");
+  return { $:'gcol', at, pxop, gcol, aft:p };
 }
 function m_move(c,p,at) {
-  var err=null; p = skip_ws(c,p);
-  var x = m_expr(c,p,0,0); p = skip_ws(p,x.aft);
-  if (c[p] === 44) ++p; else err = m_error(c,p,"Expecting , in MOVE")
-  var y = m_expr(c,p,0,0); p = skip_ws(p,y.aft);
-  return { $:'move', at, x, y, err, aft:p };
+  p = skip_ws(c,p);
+  var y=null, x=m_expr(c,p,0,0); p=skip_ws(p,x.aft);
+  if (c[p] === 44) {
+    y = m_expr(c,p+1,0,0); p=skip_ws(p,y.aft);
+  } else return m_error(c,p,"Expecting , in MOVE");
+  return { $:'move', at, x, y, aft:p };
 }
 function m_draw(c,p,at) {
-  var err=null; p = skip_ws(c,p);
-  var x = m_expr(c,p,0,0); p = skip_ws(p,x.aft);
-  if (c[p] === 44) ++p; else err = m_error(c,p,"Expecting , in DRAW")
-  var y = m_expr(c,p,0,0); p = skip_ws(p,y.aft);
-  return { $:'draw', at, x, y, err, aft:p };
+  p = skip_ws(c,p);
+  var y=null, x=m_expr(c,p,0,0); p=skip_ws(p,x.aft);
+  if (c[p] === 44) {
+    y = m_expr(c,p+1,0,0); p=skip_ws(p,y.aft);
+  } else return m_error(c,p,"Expecting , in DRAW");
+  return { $:'draw', at, x, y, aft:p };
 }
 function m_vdu(c,p,at) {
   var args=[]; p = skip_ws(c,p);
@@ -193,7 +198,7 @@ function m_vdu(c,p,at) {
 
 function m_input(c,p,at) {
   // comma causes '?' to be printed. ';' means the same.
-  var t, s, line=0, com=0, vars=[], err=null;
+  var t, s, line=0, com=0, vars=[];
   p = skip_ws(c,p);
   t = is_kw(c,p,LINE,4);
   if (t) { line=1; p = skip_ws(c,t); }
@@ -207,13 +212,13 @@ function m_input(c,p,at) {
     else break;
   }
   if (vars.length < 1) {
-    err = m_error(c,p,"Missing variable name"); p=err.aft;
+    return m_error(c,p,"Missing variable name");
   }
-  return { $:'input', at, com, vars, err, aft:p };
+  return { $:'input', at, com, vars, aft:p };
 }
 
 function m_let(c,p,at,opt) {
-  var name, exp=null, err=null;
+  var name, exp=null;
   p = skip_ws(c,p);
   name = m_ident_i(c,p,1,1);
   if (name) {
@@ -222,17 +227,17 @@ function m_let(c,p,at,opt) {
       exp = m_expr(c,p+1,0,0); p=exp.aft;
     } else {
       if (opt) return null; // not a LET stmt!
-      err = m_error(c,p,"Missing = in Let statement"); p=err.aft;
+      return m_error(c,p,"Missing = in Let statement");
     }
   } else {
     if (opt) return null;
-    err = m_error(c,p,"Missing name in Let statement"); p=err.aft;
+    return m_error(c,p,"Missing name in Let statement");
   }
-  return { $:'let', at, name:name.name, exp, err, aft:p }
+  return { $:'let', at, name:name.name, exp, aft:p }
 }
 
 function m_dim(c,p,at) {
-  var dims=[], err=null, name, args, a0, a1;
+  var dims=[], name, args, a0, a1, e0=ev.length;
   for (;;) {
     p = skip_ws(c,p); a0=p;
     name = m_ident_i(c,p,0,1); args=[];
@@ -240,13 +245,13 @@ function m_dim(c,p,at) {
     if (c[p] === 40) { a1=p; // "("
       p = m_args(c, p+1, args);
       if (c[p] === 41) ++p; // ")"
-      else { err = m_error(c,p,"Missing ) to end Dim (opened at "+(a1+1)+")"); p=err.aft; }
-    } else { err = m_error(c,p,"Missing ( after name in Dim"); p=err.aft; }
+      else return m_error(c,p,"Missing ) to end Dim (opened at "+(a1+1)+")");
+    } else return m_error(c,p,"Missing ( after name in Dim");
     dims.push({ at:a0, name:name.name, args });
-    if (!err && c[p] === 44) { ++p; continue; } // ","
+    if (ev.length===e0 && c[p] === 44) { ++p; continue; } // ","
     else break;
   }
-  return { $:'dim', at, dims, err, aft:p }
+  return { $:'dim', at, dims, aft:p }
 }
 
 // input: prints a "?"
@@ -290,25 +295,25 @@ function m_print(c,p,at) {
 }
 
 function m_tab(c,p,sem) {
-  var x, y, t = is_kw(c,p,TAB,3), err=null, at=p;
+  var x, y, t = is_kw(c,p,TAB,3), at=p;
   if (t && c[p+3] === 40) { // "TAB("
     x = m_expr(c,p+4,0,0); p=skip_ws(c,x.aft);
     if (c[p] === 44) { // ","
       y = m_expr(c,p+1,0,0); p=skip_ws(c,y.aft);
     }
     if (c[p] === 41) ++p; else { // ")"
-      err = m_error(c,p,"Missing ) to end TAB()"); p=err.aft;
+      return m_error(c,p,"Missing ) to end TAB()");
     }
-    return { $:'tab', at, sem, x, y, err, aft:p }
+    return { $:'tab', at, sem, x, y, aft:p }
   }
 }
 
 function m_if(c,p,at) {
   // IF•{expr}[THEN]{ln/stmt}[ELSE{ln/stmt}]
-  var cond, then_s=[], else_s=[], thn, els, err=null;
+  var cond, then_s=[], else_s=[], thn, els;
   cond = m_expr(c,p,1,0);
   if (cond === null) {
-    err = m_error(c,p,"Incomplete IF statement (Condition expected)"); p=err.aft;
+    return m_error(c,p,"Incomplete IF statement (Condition expected)");
   } else {
     thn = is_kw(c, cond.aft, THEN, 2);
     if (thn) {
@@ -321,15 +326,15 @@ function m_if(c,p,at) {
       if (els) p = m_stmts_goto(c, els, 'ELSE', else_s);
     } else { // parse as LET•IFN= instead of IF-Stmt.
       // TODO.
-      err = m_error(c,p,"Missing THEN after IF condition (Statement expected)"); p=err.aft;
+      return m_error(c,p,"Missing THEN after IF condition (Statement expected)");
     }
   }
-  return { $:'if', at, cond, then_s, else_s, err, aft:p }
+  return { $:'if', at, cond, then_s, else_s, aft:p }
 }
 
 function m_for(c,p,at) {
   // FOR•{name}={expr}TO{expr}[STEP{expr}]
-  var t, name, from=null, to=null, step=null, err=null;
+  var t, name, from=null, to=null, step=null;
   p = skip_ws(c,p);
   name = m_ident_i(c,p,1,1);
   if (name) {
@@ -340,24 +345,24 @@ function m_for(c,p,at) {
       if (t) {
         to = m_expr(c,t,0,0); p=skip_ws(c,to.aft);
       } else {
-        err = m_error(c,p,"Missing TO in For statement"); p=err.aft;
+        return m_error(c,p,"Missing TO in For statement");
       }
     } else {
-      err = m_error(c,p,"Missing = in For statement"); p=err.aft;
+      return m_error(c,p,"Missing = in For statement");
     }
   } else {
-    err = m_error(c,p,"Missing name in For statement"); p=err.aft;
+    return m_error(c,p,"Missing name in For statement");
   }
-  return { $:'for', at, name:name.name, from, to, step, err, aft:p }
+  return { $:'for', at, name:name.name, from, to, step, aft:p }
 }
 
 function m_until(c,p,at) {
-  var cond, err=null;
+  var cond;
   cond = m_expr(c,p,1,0);
   if (cond !== null) p=cond.aft; else {
-    err = m_error(c,p,"Incomplete UNTIL statement (Condition expected)"); p=err.aft;
+    return m_error(c,p,"Incomplete UNTIL statement (Condition expected)");
   }
-  return { $:'until', at, cond, err, aft:p }
+  return { $:'until', at, cond, aft:p }
 }
 
 function m_stmts_goto(c,p,req,stmts) {
@@ -388,7 +393,8 @@ function m_ident_i(c,p,opt,suf) {
     if (suf && (t === 36 || t === 37)) ++p; // "$","%"
     return { $:'name', at, name:subs(c,at,p), aft:p }
   }
-  if (opt) return null; return m_error(c,p,"Name expected");
+  if (!opt) return m_error(c,p,"Name expected");
+  return null;
 }
 
 function m_number_i(c,p,req) {
@@ -397,7 +403,8 @@ function m_number_i(c,p,req) {
   if (p > at) {
     return { $:'num', at, val, fmt:'', aft:p }
   }
-  if (!req) return null; return m_error(c,p,req);
+  if (req) return m_error(c,p,req);
+  return null;
 }
 
 function m_hex(c,p) {
@@ -426,7 +433,8 @@ function m_bin(c,p) {
 function m_string_i(c,p,opt) {
   var org = p, at, s = "", t = c[p];
   if (t !== 34) {
-    if (opt) return null; return m_error(c,p,"String expected");
+    if (!opt) return m_error(c,p,"String expected");
+    return null; 
   }
   t = c[++p]; at=p; // skip "
   for (;;) {
@@ -497,7 +505,8 @@ function m_expr(c,p,opt,min_bp) {
       }
     }
   }
-  if (opt) return null; return m_error(c,p,"Expression expected");
+  if (!opt) return m_error(c,p,"Expression expected");
+  return null;
 }
 
 function m_nud(c,p) {
@@ -546,11 +555,9 @@ function m_nud(c,p) {
   if (name !== null) {
     // detect built-ins.
     // FIXME: use a switch-matcher like m_stmt.
-    var low = name.name.toUpperCase();
-    for (var i=0;i<b_funs.length;i++) {
-      if (b_funs[i] === low) {
-        return m_op_fn(c,name.aft,at,low)
-      }
+    var up = name.name.toUpperCase();
+    if (b_funs.hasOwnProperty(up)) {
+      return m_op_fn(c,name.aft,at,up,b_funs[up])
     }
     return m_may_index(c,name.aft,name);
   }
@@ -577,12 +584,19 @@ function m_may_index(c,p,left) {
   return left;
 }
 
-function m_op_fn(c,p,at,op) {
-  var s, args=[]; p = skip_ws(c,p);
+function m_op_fn(c,p,at,op,narg) {
+  var s,n=narg&15,args=[]; p=skip_ws(c,p);
   if (c[p] === 40) { // "(" optional args.
     s=p; p = m_args(c, p+1, args);
-    if (c[p] === 41) ++p; // ")"
-    else err = m_error(c,p,"Missing ) to end arguments (opened at "+s+")");
+    if (c[p] === 41) { ++p; // ")"
+      if (args.length < n) {
+        return m_error(c,p,"Function "+op+" requires "+n+" argument"+(n>1?'s':''));
+      } else if (args.length > n+(narg>>4)) {
+        return m_error(c,p,"Too many arguments to function "+op);
+      }
+    } else return m_error(c,p,"Missing ) to end arguments (opened at "+s+")");
+  } else if (n) {
+    return m_error(c,p,"Function "+op+" requires "+n+" argument"+(n>1?'s':''));
   }
   return { $:op, at, args, aft:p }
 }
@@ -590,6 +604,7 @@ function m_op_fn(c,p,at,op) {
 function m_args(c,p,args) {
   for (;;) {
     var arg = m_expr(c,p,0,0);
+    if (!arg) break;
     args.push(arg);
     p = skip_ws(c, arg.aft);
     if (c[p] === 44) { ++p; continue; } // ","
@@ -599,23 +614,23 @@ function m_args(c,p,args) {
 }
 
 function m_arr_idx(c,p,at,left) {
-  var args=[], err=null;
+  var args=[];
   p = m_args(c,p,args);
   if (c[p] === 41) ++p; // ")"
-  else err = m_error(c,p,"Missing ) in array indexing (opened at "+(at+1)+")");
-  return { $:'idx', at, left, args, err, aft:p+1 };
+  else return m_error(c,p,"Missing ) in array indexing (opened at "+(at+1)+")");
+  return { $:'idx', at, left, args, aft:p+1 };
 }
 
 function m_fn_proc(c,p,at,op) {
   p = skip_ws(c,p);
-  var name = m_ident_i(c,p,0,0), args=[], err=null;
+  var name = m_ident_i(c,p,0,0), args=[];
   p = skip_ws(c,name.aft);
   if (c[p] === 40) { // "(" optional args.
     p = m_args(c, p+1, args);
     if (c[p] === 41) ++p; // ")"
-    else err = m_error(c,p,"Missing ) to end arguments (opened at "+(at+1)+")");
+    else return m_error(c,p,"Missing ) to end arguments (opened at "+(at+1)+")");
   }
-  return { $:op, at, name:name.name, args, err, aft:p }
+  return { $:op, at, name:name.name, args, aft:p }
 }
 
 function is_kw(c,p,kw,min) {
@@ -629,16 +644,16 @@ function is_kw(c,p,kw,min) {
 }
 
 function m_line(text) {
-  var c = enc.encode(text), stmts=[], t, p, no=-1, err;
+  var c = enc.encode(text), stmts=[], t, p, no=-1, err=null;
   p = skip_ws(c,0);
   t = m_number_i(c,p,0);
   if (t) { no=t.val; p=t.aft; }
   p = m_stmts(c,p,'',stmts); p = skip_ws(c,p);
   if (p < c.length) {
-    if (stmts.length) err = m_error(c,p,"End of Line expected");
-    else err = m_error(c,p,"Unrecognised statement");
-    p=err.aft;
+    if (stmts.length) return m_error(c,p,"End of Line expected");
+    else return m_error(c,p,"Unrecognised statement");
   }
+  if (ev.length) { err=ev; ev=[] }
   return { no, stmts, err }
 }
 
@@ -659,13 +674,15 @@ function fmt_stmts(stmts) {
   for (var S of stmts) {
     if (s) s += ' : ';
     s += fmt_stmt(S);
-    if (S.err) s = fmt_err(S.err, s);
   }
   return s;
 }
-function fmt_err(L,s) {
-  if (s) s += ' ';
-  return s+`[${L.msg} at ${L.at+1}: ${L.text}]`
+function fmt_err(ev,s) {
+  for (var i=0;i<ev.length;i+=3) {
+   if (s) s += ' ';
+   s+`[${ev[i+1]} at ${ev[i]+1}: ${ev[i+2]}]`
+  }
+  return s;
 }
 function fmt_stmt(L) {
   switch (L.$) {
@@ -758,31 +775,29 @@ var opLet=1|0,opDim=2|0,opPrint=3|0,opIfN=4|0,opJmp=5|0,opGoToExp=6|0,opGoSubExp
 var opNeg=11|0,opNot=12|0,opVar=13|0,opNum=14|0,opStr=15|0,opFn=16|0,opTab=17|0,opTabXY=18|0,opFor=19|0;
 var opAdd=20|0,opSub=21|0,opMul=22|0,opDiv=23|0,opIDiv=24|0,opMod=25|0,opPow=26|0,opAnd=27|0,opOr=28|0,opEor=29|0;
 var opEq=30|0,opNe=31|0,opGt=32|0,opGe=33|0,opLt=34|0,opLe=35|0,opRepeat=36|0,opUntil=37|0;
-var opInKey=38|0;
+var opInKey=38|0,opSqr=39|0;
 var opMode=50|0,opCls=51|0,opColor=52|0,opGCol=53|0,opMove=54|0,opDraw=55|0,opVdu=56|0; // BBC
 var opCodes={
  '+':opAdd,'-':opSub,'*':opMul,'/':opDiv,'DIV':opIDiv,'MOD':opMod,'^':opPow,
  'AND':opAnd,'OR':opOr,'EOR':opEor,'=':opEq,'<>':opNe,'<':opLt,'<=':opLe,'>':opGt,'>=':opGe,
- 'INKEY':opInKey
+ 'INKEY':opInKey,'SQR':opSqr,
 };
 function new_gctx() {
-  return {ops:[],sol:[],sos:[],err:[],line:0|0,nvar:0|0,varmap:new Map(),vars:[],out:[]}
+ return {ops:[],sol:[],sos:[],err:[],line:0|0,nvar:0|0,varmap:new Map(),vars:[],out:[]}
 }
 function gen_code(code, G) {
  G.ops=[""]; G.ops.length=0; G.sol=[]; G.sos=[]; G.err=[]; // new outputs.
  for (var L of code) {
   G.line = L.no|0;
   G.sol.push(G.line,G.ops.length); // start of line.
-  gen_stmts(G,L.stmts);
-  if (L.err) gen_err(G,L.err);
+  if (L.err) gen_err(G,L.err); else gen_stmts(G,L.stmts);
  }
 }
-function gen_err(G,err) {
- var s = err.msg;
- if (G.line>=0) G.err.push(s+' at line '+G.line); else G.err.push(s);
+function gen_err(G,ev) { // only 1st
+ if (G.line>=0) G.err.push(ev[1]+' at line '+G.line); else G.err.push(ev[1]);
 }
 function gen_bad(G) {
-  if (!G.err.length) G.err.push("Bad code"); // fallback.
+ if (!G.err.length) G.err.push("Bad code"); // fallback.
 }
 function gen_var(G,name) {
  if (typeof name !== 'string') throw 1;
@@ -794,7 +809,6 @@ function gen_stmts(G,stmts) {
  for (var S of stmts) {
    G.sos.push(sn++,G.ops.length); // start of stmt.
    gen_stmt(G,S);
-   if (S.err) gen_err(G,S.err);
  }
  return s;
 }
@@ -855,7 +869,7 @@ function gen_stmt(G,L) {
    case 'move': push_expr(G,L.x); push_expr(G,L.y); G.ops.push(opMove); return;
    case 'draw': push_expr(G,L.x); push_expr(G,L.y); G.ops.push(opDraw); return;
    case 'vdu': push_args(G,L.args); G.ops.push(opVdu,L.args.length); return;
-   default: gen_err(G,{msg:"Unknown statement: "+L.$,at:L.at,text:''});
+   default: gen_err(G,[L.at,"Unknown statement: "+L.$,'']);
  }
 }
 function gen_print(G,L) {
@@ -884,10 +898,9 @@ function push_expr(G,L) {
    if (L.y) { push_expr(G,L.y); G.ops.push(opTabXY); return }
    G.ops.push(opTab); return
   }
-  case 'err': gen_err(G,L); return
   case '()': push_expr(G,L.right); return
   case 'fn': {
-   for (var i=0;i<L.args;i++) push_expr(G,L.args[i]);
+   for (var i=0;i<L.args.length;i++) push_expr(G,L.args[i]);
    var n = gen_var(G,'fn:',L.name);
    G.ops.push(opFn,n); return
   }
@@ -904,7 +917,7 @@ function push_expr(G,L) {
     G.err.push("Missing opcode for "+L.$);
    } else {
     if (L.args) {
-      for (var i=0;i<L.args;i++) push_expr(G,L.args[i]); G.ops.push(op); return
+      for (var i=0;i<L.args.length;i++) push_expr(G,L.args[i]); G.ops.push(op); return
     } else {
       push_expr(G,L.left); push_expr(G,L.right); G.ops.push(op); return
     }
@@ -968,6 +981,7 @@ function eval_code(ops, G) {
   case opGe: --top; stack[top-1] = stack[top-1] >= stack[top] ? -1 : 0; break;
   case opLt: --top; stack[top-1] = stack[top-1] < stack[top] ? -1 : 0; break;
   case opLe: --top; stack[top-1] = stack[top-1] <= stack[top] ? -1 : 0; break;
+  case opSqr: stack[top-1] = Math.sqrt(stack[top-1]); break;
   default: G.out.push('Not implemented'); return; // throw new Error('bad op '+ops[--p]);
   }
  }
