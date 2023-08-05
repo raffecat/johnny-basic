@@ -650,8 +650,8 @@ function m_line(text) {
   if (t) { no=t.val; p=t.aft; }
   p = m_stmts(c,p,'',stmts); p = skip_ws(c,p);
   if (p < c.length) {
-    if (stmts.length) return m_error(c,p,"End of Line expected");
-    else return m_error(c,p,"Unrecognised statement");
+    if (stmts.length) m_error(c,p,"End of Line expected");
+    else m_error(c,p,"Unrecognised statement");
   }
   if (ev.length) { err=ev; ev=[] }
   return { no, stmts, err }
